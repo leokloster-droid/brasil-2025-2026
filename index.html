@@ -1,56 +1,143 @@
-const FOLDER_ID = 1AiGB6BBrUGEB8QnmdQ19wycFRdcMM6UE;  // ← reemplazar
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>🌴 Año Nuevo 2025–2026 🌊</title>
 
-function doPost(e) {
-  try {
-    const folder = DriveApp.getFolderById(FOLDER_ID);
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #0a4d8c;
+    }
+    .section {
+      background: white;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 800px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 10px 18px;
+      background: #0a4d8c;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    #gallery img {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      margin: 8px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
 
-    const data = e.parameter.data;
-    const mimeType = e.parameter.mimeType;
-    const fileName = e.parameter.fileName || ('foto_' + Date.now() + '.jpg');
+  <h1>🌴 Año Nuevo 2025–2026 🌊</h1>
 
-    const bytes = Utilities.base64Decode(data);
-    const blob = Utilities.newBlob(bytes, mimeType, fileName);
+  <div class="section">
+    <h2>📸 Subir fotos del viaje</h2>
+    <input type="file" id="photoInput" accept="image/*">
+    <button id="uploadBtn">Subir foto</button>
+    <p id="status"></p>
+  </div>
 
-    const file = folder.createFile(blob);
+  <div class="section">
+    <h2>🖼️ Galería</h2>
+    <div id="gallery"></div>
+  </div>
 
-    // Hacer público con link
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  <script>
+    // 👇 Pegá acá la URL de tu Web App de Apps Script (la que termina en /exec)
+    const API_URL = "https://script.google.com/macros/s/AKfycbwkYKYmUsoQNuTdfYmyqrgFYcXgf34VwWyVkUNVLSEu0iP0WYfl3-pbjD1zmW8iHJKyXA/exec";
 
-    const id = file.getId();
-    const publicUrl = 'https://drive.google.com/uc?export=view&id=' + id;
+    const photoInput = document.getElementById("photoInput");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const statusEl = document.getElementById("status");
+    const gallery = document.getElementById("gallery");
 
-    const res = { ok: true, url: publicUrl };
+    async function uploadPhoto() {
+      const file = photoInput.files[0];
+      if (!file) {
+        alert("Elegí una foto primero 🙂");
+        return;
+      }
 
-    return ContentService
-      .createTextOutput(JSON.stringify(res))
-      .setMimeType(ContentService.MimeType.JSON);
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const base64 = reader.result.split(",")[1];
 
-  } catch (err) {
-    const res = { ok: false, error: err.toString() };
-    return ContentService
-      .createTextOutput(JSON.stringify(res))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
+        uploadBtn.disabled = true;
+        statusEl.textContent = "Subiendo foto...";
 
-function doGet(e) {
-  const folder = DriveApp.getFolderById(FOLDER_ID);
-  const files = folder.getFiles();
-  const list = [];
+        const body = new URLSearchParams();
+        body.append("data", base64);
+        body.append("mimeType", file.type);
+        body.append("fileName", file.name);
 
-  while (files.hasNext()) {
-    const f = files.next();
-    const id = f.getId();
-    const url = 'https://drive.google.com/uc?export=view&id=' + id;
+        try {
+          const res = await fetch(API_URL, {
+            method: "POST",
+            body: body
+          });
+          const data = await res.json();
+          if (!data.ok) {
+            console.error(data);
+            statusEl.textContent = "Error al subir la foto 😢";
+          } else {
+            statusEl.textContent = "Foto subida ✔️";
+            photoInput.value = "";
+            loadGallery();
+          }
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = "Error de conexión 😢";
+        } finally {
+          uploadBtn.disabled = false;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
 
-    list.push({
-      url: url,
-      name: f.getName(),
-      created: f.getDateCreated()
-    });
-  }
+    async function loadGallery() {
+      gallery.innerHTML = "Cargando fotos...";
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        if (!data.ok) {
+          gallery.textContent = "No se pudieron cargar las fotos.";
+          return;
+        }
+        gallery.innerHTML = "";
+        (data.photos || []).forEach(p => {
+          const img = document.createElement("img");
+          img.src = p.url;
+          gallery.appendChild(img);
+        });
+      } catch (err) {
+        console.error(err);
+        gallery.textContent = "Error al cargar las fotos.";
+      }
+    }
 
-  return ContentService
-    .createTextOutput(JSON.stringify({ ok: true, photos: list }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+    uploadBtn.addEventListener("click", uploadPhoto);
+    loadGallery(); // carga inicial
+  </script>
+
+</body>
+</html>
