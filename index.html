@@ -1,183 +1,56 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Año Nuevo 2025–2026</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f4f8;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: #0a4d8c;
-      margin-top: 10px;
-      margin-bottom: 24px;
-    }
-    .card {
-      background: white;
-      padding: 16px;
-      margin-bottom: 20px;
-      border-radius: 12px;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-    }
-    .card h2 {
-      margin-top: 0;
-    }
-    .photo-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    input[type="file"] {
-      max-width: 100%;
-    }
-    button {
-      border: none;
-      border-radius: 999px;
-      padding: 8px 14px;
-      font-weight: bold;
-      cursor: pointer;
-      background: #0ea5e9;
-      color: white;
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
-    .gallery {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .gallery img {
-      width: 150px;
-      height: 150px;
-      object-fit: cover;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
-    .small-text {
-      font-size: 0.85rem;
-      color: #555;
-      margin-top: 4px;
-    }
-  </style>
+const FOLDER_ID = 1AiGB6BBrUGEB8QnmdQ19wycFRdcMM6UE;  // ← reemplazar
 
-  <!-- Firebase v8 clásica -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-</head>
-<body>
+function doPost(e) {
+  try {
+    const folder = DriveApp.getFolderById(FOLDER_ID);
 
-  <h1>🌴 Año Nuevo 2025–2026 🌊</h1>
+    const data = e.parameter.data;
+    const mimeType = e.parameter.mimeType;
+    const fileName = e.parameter.fileName || ('foto_' + Date.now() + '.jpg');
 
-  <!-- FOTOS -->
-  <div class="card">
-    <h2>📸 Fotos del viaje</h2>
-    <p>Acá vamos a subir todas las fotos que saquemos.</p>
+    const bytes = Utilities.base64Decode(data);
+    const blob = Utilities.newBlob(bytes, mimeType, fileName);
 
-    <div class="photo-controls">
-      <input type="file" id="photoInput" accept="image/*" />
-      <button id="uploadBtn">Subir foto</button>
-    </div>
-    <div class="small-text">
-      Consejo: saquen fotos horizontales, se ven más lindas en la galería 😊
-    </div>
+    const file = folder.createFile(blob);
 
-    <div id="gallery" class="gallery"></div>
-  </div>
+    // Hacer público con link
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-  <!-- MAPA (después lo llenamos) -->
-  <div class="card">
-    <h2>🗺️ Mapa del recorrido</h2>
-    <p>Acá vamos a ver la ruta del viaje y los puntos donde estemos.</p>
-  </div>
+    const id = file.getId();
+    const publicUrl = 'https://drive.google.com/uc?export=view&id=' + id;
 
-  <!-- UBICACIÓN (después lo llenamos) -->
-  <div class="card">
-    <h2>📍 Ubicación en vivo</h2>
-    <p>Después vamos a agregar un botón para guardar la ubicación.</p>
-  </div>
+    const res = { ok: true, url: publicUrl };
 
-  <script>
-    // 👇 ACÁ pegás tu firebaseConfig (el real, el que copiaste de Firebase)
-    const firebaseConfig = {
-      apiKey: "TU_API_KEY",
-      authDomain: "TU_AUTH_DOMAIN",
-      databaseURL: "TU_DATABASE_URL",
-      projectId: "TU_PROJECT_ID",
-      storageBucket: "TU_STORAGE_BUCKET",
-      messagingSenderId: "TU_SENDER_ID",
-      appId: "TU_APP_ID"
-    };
+    return ContentService
+      .createTextOutput(JSON.stringify(res))
+      .setMimeType(ContentService.MimeType.JSON);
 
-    // Inicializar Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const photosRef = db.ref("photos");
-    const storage = firebase.storage();
+  } catch (err) {
+    const res = { ok: false, error: err.toString() };
+    return ContentService
+      .createTextOutput(JSON.stringify(res))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
 
-    const photoInput = document.getElementById("photoInput");
-    const uploadBtn = document.getElementById("uploadBtn");
-    const gallery = document.getElementById("gallery");
+function doGet(e) {
+  const folder = DriveApp.getFolderById(FOLDER_ID);
+  const files = folder.getFiles();
+  const list = [];
 
-    // Subir foto
-    uploadBtn.addEventListener("click", () => {
-      const file = photoInput.files[0];
-      if (!file) {
-        alert("Elegí una foto primero 🙂");
-        return;
-      }
+  while (files.hasNext()) {
+    const f = files.next();
+    const id = f.getId();
+    const url = 'https://drive.google.com/uc?export=view&id=' + id;
 
-      uploadBtn.disabled = true;
-      uploadBtn.textContent = "Subiendo...";
-
-      const fileName = Date.now() + "_" + file.name;
-      const storageRef = storage.ref("photos/" + fileName);
-
-      storageRef.put(file)
-        .then(snapshot => snapshot.ref.getDownloadURL())
-        .then(url => {
-          // Guardamos solo la URL + fecha
-          const newRef = photosRef.push();
-          newRef.set({
-            url: url,
-            createdAt: firebase.database.ServerValue.TIMESTAMP
-          });
-
-          photoInput.value = "";
-          uploadBtn.disabled = false;
-          uploadBtn.textContent = "Subir foto";
-        })
-        .catch(err => {
-          console.error(err);
-          alert("Hubo un problema al subir la foto 😢");
-          uploadBtn.disabled = false;
-          uploadBtn.textContent = "Subir foto";
-        });
+    list.push({
+      url: url,
+      name: f.getName(),
+      created: f.getDateCreated()
     });
+  }
 
-    // Escuchar cambios y mostrar galería
-    photosRef.on("value", snapshot => {
-      const data = snapshot.val() || {};
-      const items = Object.values(data);
-
-      // Ordenar por fecha (viejas primero)
-      items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-
-      gallery.innerHTML = "";
-      items.forEach(photo => {
-        const img = document.createElement("img");
-        img.src = photo.url;
-        gallery.appendChild(img);
-      });
-    });
-  </script>
-</body>
-</html>
+  return ContentService
+    .createTextOutput(JSON.stringify({ ok: true, photos: list }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
