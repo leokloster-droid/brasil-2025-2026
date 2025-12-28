@@ -5,210 +5,522 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Año Nuevo 2025–2026</title>
 
-  <!-- Leaflet (mapa) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
   <style>
-    body { font-family: Arial, sans-serif; background:#f3f6fb; margin:0; padding:20px; }
-    .header { text-align:center; margin-bottom:20px; }
-    .header h1 { margin:0; font-size:34px; color:#0a4d8c; }
-    .small { font-size:12px; color:#666; }
+    :root{
+      --bg1:#0b1020;
+      --card: rgba(255,255,255,.08);
+      --stroke: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.65);
+      --good:#18c37e;
+      --bad:#ff4d4d;
+      --accent:#6ee7ff;
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: var(--text);
+      background:
+        radial-gradient(1100px 700px at 20% 10%, rgba(110,231,255,.25), transparent 55%),
+        radial-gradient(900px 700px at 80% 20%, rgba(24,195,126,.18), transparent 55%),
+        radial-gradient(1200px 900px at 50% 85%, rgba(255,255,255,.07), transparent 55%),
+        linear-gradient(140deg, var(--bg1), #08122b 30%, #071a33 60%, #06142a);
+      min-height:100vh;
+      padding: 22px 14px 90px;
+    }
+    .wrap{ max-width: 1100px; margin: 0 auto; }
 
-    .card { background:#fff; border-radius:16px; padding:18px; margin:16px auto; max-width:1060px; box-shadow:0 6px 24px rgba(0,0,0,.08); }
-    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .topbar{
+      position: sticky;
+      top: 10px;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 22px;
+      padding: 14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+    .brand{ display:flex; align-items:center; gap:12px; }
+    .logo{
+      width:42px; height:42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(110,231,255,.9), rgba(24,195,126,.9));
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .title{ line-height:1.1; }
+    .title h1{ margin:0; font-size: 18px; letter-spacing:.2px; }
+    .title div{ margin-top:4px; font-size: 12px; color: var(--muted); }
 
-    .btn { background:#0a4d8c; color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:700; }
-    .btn:disabled { opacity:.6; cursor:not-allowed; }
-    .btn-danger { background:#b42318; }
-    .btn-good { background:#0f8a4b; }
-    .btn-stop { background:#7a2e2e; }
+    .actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
-    .status { margin-top:10px; font-size:14px; color:#333; }
+    .tabs{
+      display:flex; gap:10px; flex-wrap:wrap;
+      margin: 16px 0;
+    }
+    .tab{
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 999px;
+      cursor:pointer;
+      font-weight: 700;
+      font-size: 13px;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+    }
+    .tab:hover{ transform: translateY(-1px); }
+    .tab.active{
+      background: rgba(110,231,255,.14);
+      border-color: rgba(110,231,255,.35);
+    }
 
-    input[type="text"]{ padding:10px 12px; border-radius:10px; border:1px solid #d6d6d6; min-width:220px; }
+    .card{
+      border-radius: var(--radius);
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      margin: 14px 0;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .card h2{
+      margin: 0 0 12px;
+      font-size: 15px;
+      letter-spacing:.2px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .pill{
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.12);
+      color: var(--muted);
+      font-weight:700;
+      margin-left: 6px;
+    }
+    .hint{ font-size: 12px; color: var(--muted); margin-top: 8px; line-height:1.35; }
+    .status{ margin-top:10px; font-size: 13px; color: var(--muted); }
 
-    .day { margin-top:14px; border:1px solid #e6eef9; background:#f8fbff; border-radius:14px; overflow:hidden; }
-    .dayHead { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; cursor:pointer; }
-    .dayHead b { color:#0a4d8c; }
-    .dayBody { display:none; padding:12px 14px; background:#fff; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    input[type="text"]{
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.14);
+      color: var(--text);
+      padding: 11px 12px;
+      border-radius: 14px;
+      outline: none;
+      min-width: 210px;
+    }
+    input[type="file"]{ color: var(--muted); }
 
-    .grid { display:flex; flex-wrap:wrap; gap:14px; }
-    .tile { width:220px; background:#fff; border:1px solid #e6e6e6; border-radius:14px; padding:10px; box-shadow:0 4px 14px rgba(0,0,0,.06); }
-    .thumb { width:100%; height:160px; object-fit:cover; border-radius:10px; background:#f2f2f2; }
-    .name { font-weight:700; margin:8px 0 6px; font-size:13px; word-break:break-word; }
-    .meta { font-size:12px; color:#555; margin-bottom:8px; }
-    a { color:#0a4d8c; text-decoration:none; }
-    a:hover { text-decoration:underline; }
+    .btn{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-weight: 800;
+      font-size: 13px;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      user-select:none;
+    }
+    .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.10); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; transform:none; }
 
-    #map { height: 420px; border-radius: 14px; overflow:hidden; border: 1px solid #e6e6e6; }
-    .pill { display:inline-block; font-size:12px; padding:3px 8px; border-radius:999px; background:#e8f1ff; color:#0a4d8c; font-weight:700; margin-left:6px;}
-    .hint { font-size:12px; color:#555; margin-top:8px; }
+    .btnPrimary{
+      background: linear-gradient(135deg, rgba(110,231,255,.22), rgba(24,195,126,.22));
+      border-color: rgba(110,231,255,.25);
+    }
+    .btnGood{ background: rgba(24,195,126,.18); border-color: rgba(24,195,126,.35); }
+    .btnBad{ background: rgba(255,77,77,.18); border-color: rgba(255,77,77,.35); }
+
+    .day{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      border-radius: 18px;
+      overflow:hidden;
+      margin-top: 12px;
+    }
+    .dayHead{
+      padding: 12px 14px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .dayHead b{ color: var(--text); }
+    .dayBody{
+      display:none;
+      padding: 14px;
+      background: rgba(0,0,0,.18);
+      border-top: 1px solid rgba(255,255,255,.10);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .tile{
+      border-radius: 18px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 12px;
+      overflow:hidden;
+      position:relative;
+    }
+    .meta{ font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .name{ font-weight: 900; font-size: 13px; margin-bottom: 6px; }
+    .thumb, video{
+      width:100%;
+      height: 165px;
+      object-fit: cover;
+      border-radius: 14px;
+      background: rgba(0,0,0,.25);
+      display:block;
+      cursor: pointer;
+    }
+
+    .tileActions{ display:flex; gap:10px; align-items:center; margin-top: 10px; }
+    .link{ color: var(--accent); font-weight: 800; font-size: 13px; text-decoration:none; }
+
+    #map{
+      height: 430px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    .fab{
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 20;
+      border-radius: 999px;
+      padding: 14px 16px;
+      font-weight: 900;
+      cursor: pointer;
+      background: linear-gradient(135deg, rgba(110,231,255,.28), rgba(24,195,126,.28));
+      border: 1px solid rgba(110,231,255,.30);
+      color: var(--text);
+      box-shadow: 0 20px 60px rgba(0,0,0,.40);
+      display:flex; align-items:center; gap:10px;
+    }
+    .fab input{ display:none; }
+    .fab:active{ transform: translateY(1px); }
+
+    /* Live list (opción 4) */
+    .livePanel{
+      margin-top: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      border-radius: 18px;
+      padding: 12px;
+    }
+    .liveGrid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .liveCard{
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      padding: 10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:999px;background: var(--good);
+      box-shadow: 0 0 0 4px rgba(24,195,126,.14);
+      flex: 0 0 auto;
+    }
+    .liveName{ font-weight: 900; font-size: 13px; }
+    .liveMeta{ font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .liveLeft{ display:flex; gap:10px; align-items:flex-start; }
+
+    /* Modal fullscreen (opción 1) */
+    .modal{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index: 50;
+      padding: 18px;
+    }
+    .modalBox{
+      width: min(980px, 100%);
+      background: rgba(20,25,45,.86);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 22px;
+      box-shadow: 0 30px 90px rgba(0,0,0,.55);
+      overflow:hidden;
+    }
+    .modalTop{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .modalTitle{
+      font-weight: 900;
+      font-size: 13px;
+      color: rgba(255,255,255,.92);
+      line-height:1.25;
+    }
+    .modalSub{
+      font-size: 12px;
+      color: rgba(255,255,255,.65);
+      margin-top: 3px;
+    }
+    .modalBtns{ display:flex; gap:10px; flex-wrap:wrap; }
+    .modalBody{
+      background: rgba(0,0,0,.22);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 12px;
+    }
+    .modalMedia{
+      width: 100%;
+      max-height: 72vh;
+      object-fit: contain;
+      border-radius: 16px;
+      background: rgba(0,0,0,.25);
+    }
+
+    @media (max-width: 520px){
+      .title h1{ font-size: 16px; }
+      input[type="text"]{ min-width: 160px; }
+      .modalMedia{ max-height: 68vh; }
+    }
   </style>
 </head>
 
 <body>
-  <div class="header">
-    <h1>🌴 Año Nuevo 2025–2026 🌊</h1>
-    <div class="small">Timeline por día + mapa + modo encuentro (en vivo cada 15s mientras la página esté abierta).</div>
-  </div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div class="title">
+          <h1>Año Nuevo 2025–2026</h1>
+          <div>Timeline + mapa + modo encuentro (15s) ✨</div>
+        </div>
+      </div>
 
-  <div class="card">
-    <h2>👤 Tu nombre</h2>
-    <div class="row">
-      <input id="whoInput" type="text" placeholder="Ej: Leo" />
-      <button id="saveNameBtn" class="btn">Guardar nombre</button>
-      <span class="small">Se guarda en tu navegador.</span>
-    </div>
-    <div id="nameStatus" class="status"></div>
-  </div>
-
-  <div class="card">
-    <h2>📸 Subir fotos o videos</h2>
-    <div class="row">
-      <input id="fileInput" type="file" accept="image/*,video/*" />
-      <button id="uploadBtn" class="btn">Subir</button>
-      <button id="refreshBtn" class="btn" type="button">Actualizar</button>
-    </div>
-    <div id="status" class="status"></div>
-  </div>
-
-  <div class="card">
-    <h2>🗓️ Actividad por día <span class="pill" id="countPill">0</span></h2>
-    <div class="hint">Tocá un día para desplegar. Ahí vas a ver fotos/videos y ubicaciones (todo mezclado por hora).</div>
-    <div id="days"></div>
-  </div>
-
-  <div class="card">
-    <h2>🗺️ Mapa</h2>
-    <div class="row">
-      <button id="saveLocBtn" class="btn">📍 Guardar ubicación (evento)</button>
-
-      <button id="startLiveBtn" class="btn btn-good">🟢 Modo encuentro ON</button>
-      <button id="stopLiveBtn" class="btn btn-stop" disabled>🔴 Modo encuentro OFF</button>
-
-      <button id="reloadMapBtn" class="btn">🔄 Actualizar mapa</button>
+      <div class="actions">
+        <button class="btn btnPrimary" id="refreshBtn">🔄 Actualizar</button>
+      </div>
     </div>
 
-    <div class="hint">
-      - “Guardar ubicación” crea un punto en el timeline.<br>
-      - “Modo encuentro” actualiza tu posición cada 15s mientras esta página esté abierta.<br>
-      - Si cerrás la pestaña, el seguimiento se corta (limitación del navegador).
+    <div class="tabs">
+      <button class="tab active" data-view="timeline">🗓️ Actividad</button>
+      <button class="tab" data-view="map">🗺️ Mapa</button>
+      <button class="tab" data-view="settings">⚙️ Ajustes</button>
     </div>
 
-    <div id="map" style="margin-top:14px;"></div>
-    <div id="mapStatus" class="status"></div>
+    <!-- SETTINGS -->
+    <div class="card" id="viewSettings" style="display:none;">
+      <h2>⚙️ Ajustes</h2>
+      <div class="row">
+        <input id="whoInput" type="text" placeholder="Tu nombre (ej: Leo)" />
+        <button class="btn btnPrimary" id="saveNameBtn">Guardar nombre</button>
+        <span class="pill" id="namePill">Nombre: -</span>
+      </div>
+      <div class="hint">Se guarda en tu navegador. Cada uno pone su nombre una vez.</div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="card" id="viewTimeline">
+      <h2>🗓️ Actividad por día <span class="pill" id="countPill">0</span></h2>
+      <div class="hint">
+        “Hoy” queda arriba y se abre solo. Los otros días quedan cerrados para que sea más limpio.
+        Tocá un día para desplegar.
+      </div>
+      <div id="days"></div>
+      <div id="statusTimeline" class="status"></div>
+    </div>
+
+    <!-- MAP -->
+    <div class="card" id="viewMap" style="display:none;">
+      <h2>🗺️ Mapa</h2>
+      <div class="row">
+        <button class="btn btnPrimary" id="saveLocBtn">📍 Guardar ubicación (evento)</button>
+        <button class="btn btnGood" id="startLiveBtn">🟢 Modo encuentro ON</button>
+        <button class="btn btnBad" id="stopLiveBtn" disabled>🔴 Modo encuentro OFF</button>
+      </div>
+      <div class="hint">
+        - “Guardar ubicación” crea un punto en el timeline.<br>
+        - “Modo encuentro” actualiza tu posición cada 15s mientras esta página esté abierta.
+      </div>
+
+      <div id="map" style="margin-top:14px;"></div>
+      <div id="mapStatus" class="status"></div>
+
+      <!-- LIVE PANEL (Opción 4) -->
+      <div class="livePanel">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div style="font-weight:900;">🟢 En vivo ahora</div>
+          <span class="pill" id="liveCountPill">0</span>
+        </div>
+        <div class="hint">Si alguien deja de mandar señal, su “hace Xs” va creciendo.</div>
+        <div class="liveGrid" id="liveGrid"></div>
+      </div>
+    </div>
   </div>
 
-  <!-- Leaflet JS -->
+  <!-- FAB upload -->
+  <label class="fab" id="fab">
+    ➕ Subir
+    <input id="fabInput" type="file" accept="image/*,video/*" />
+  </label>
+
+  <!-- MODAL fullscreen (Opción 1) -->
+  <div class="modal" id="modal">
+    <div class="modalBox">
+      <div class="modalTop">
+        <div>
+          <div class="modalTitle" id="modalTitle">—</div>
+          <div class="modalSub" id="modalSub">—</div>
+        </div>
+        <div class="modalBtns">
+          <a class="btn btnPrimary" id="modalOpen" target="_blank" rel="noopener">Abrir en Drive</a>
+          <button class="btn" id="modalClose">Cerrar</button>
+        </div>
+      </div>
+      <div class="modalBody" id="modalBody"></div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // ✅ Tu API confirmada
-    const API_URL = "https://script.google.com/macros/s/AKfycbwTQGsA4m3_93M-Ir6udGzEhi0ijC2xgeoIjGAH4voL0K_55kcezFZ9_QIICX39JNL1HA/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxkKSyHwc8jrtcpEGAVcUyIThCHhxGezEa45Nk4TFFqFqOdj6cBoOSn19RhPJZKluuaVQ/exec";
 
-    // UI
-    const whoInput = document.getElementById("whoInput");
-    const saveNameBtn = document.getElementById("saveNameBtn");
-    const nameStatus = document.getElementById("nameStatus");
+    // Tabs / views
+    const tabs = Array.from(document.querySelectorAll(".tab"));
+    const viewTimeline = document.getElementById("viewTimeline");
+    const viewMap = document.getElementById("viewMap");
+    const viewSettings = document.getElementById("viewSettings");
 
-    const fileInput = document.getElementById("fileInput");
-    const uploadBtn = document.getElementById("uploadBtn");
-    const refreshBtn = document.getElementById("refreshBtn");
-    const statusEl = document.getElementById("status");
-    const countPill = document.getElementById("countPill");
+    function setView(v){
+      viewTimeline.style.display = (v === "timeline") ? "block" : "none";
+      viewMap.style.display = (v === "map") ? "block" : "none";
+      viewSettings.style.display = (v === "settings") ? "block" : "none";
+      tabs.forEach(t => t.classList.toggle("active", t.dataset.view === v));
 
-    const daysEl = document.getElementById("days");
-
-    const saveLocBtn = document.getElementById("saveLocBtn");
-    const startLiveBtn = document.getElementById("startLiveBtn");
-    const stopLiveBtn = document.getElementById("stopLiveBtn");
-    const reloadMapBtn = document.getElementById("reloadMapBtn");
-    const mapStatus = document.getElementById("mapStatus");
-
-    function setStatus(msg){ statusEl.textContent = msg || ""; }
-    function setMapStatus(msg){ mapStatus.textContent = msg || ""; }
-    function setNameStatus(msg){ nameStatus.textContent = msg || ""; }
+      // Leaflet necesita invalidar tamaño cuando estaba oculto
+      if (v === "map") setTimeout(() => map.invalidateSize(), 120);
+    }
+    tabs.forEach(t => t.onclick = () => setView(t.dataset.view));
 
     // Name storage
     const NAME_KEY = "brasil_who_v1";
+    const whoInput = document.getElementById("whoInput");
+    const saveNameBtn = document.getElementById("saveNameBtn");
+    const namePill = document.getElementById("namePill");
     function getWho(){
       const v = (localStorage.getItem(NAME_KEY) || "").trim();
       return v || "Alguien";
     }
     function setWho(v){
       localStorage.setItem(NAME_KEY, (v||"").trim());
+      namePill.textContent = "Nombre: " + getWho();
+    }
+    saveNameBtn.onclick = () => setWho(whoInput.value);
+    function initName(){
+      whoInput.value = localStorage.getItem(NAME_KEY) || "";
+      namePill.textContent = "Nombre: " + getWho();
     }
 
-    // Dates
-    function fmtDate(iso){
-      try { return new Date(iso).toLocaleString(); } catch { return ""; }
+    // Status
+    const statusTimeline = document.getElementById("statusTimeline");
+    const mapStatus = document.getElementById("mapStatus");
+    function setTimelineStatus(m){ statusTimeline.textContent = m || ""; }
+    function setMapStatus(m){ mapStatus.textContent = m || ""; }
+
+    // Modal (Opción 1)
+    const modal = document.getElementById("modal");
+    const modalBody = document.getElementById("modalBody");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalSub = document.getElementById("modalSub");
+    const modalOpen = document.getElementById("modalOpen");
+    const modalClose = document.getElementById("modalClose");
+
+    function openModalForEvent(ev){
+      modalTitle.textContent = `${ev.who || "Alguien"} • ${ev.name || (ev.isVideo ? "Video" : "Foto")}`;
+      modalSub.textContent = ev.created ? new Date(ev.created).toLocaleString() : "";
+      modalOpen.href = ev.viewUrl || "#";
+
+      modalBody.innerHTML = "";
+      if (ev.isVideo) {
+        const v = document.createElement("video");
+        v.className = "modalMedia";
+        v.src = ev.viewUrl;
+        v.controls = true;
+        v.autoplay = true;
+        v.playsInline = true;
+        modalBody.appendChild(v);
+      } else {
+        const img = document.createElement("img");
+        img.className = "modalMedia";
+        // en modal usamos viewUrl (drive view) no sirve como src,
+        // usamos thumb grande (Drive thumbnail) para mostrar bien:
+        img.src = ev.thumb || "";
+        img.alt = ev.name || "foto";
+        modalBody.appendChild(img);
+      }
+
+      modal.style.display = "flex";
     }
-
-    // Base64
-    function toBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const s = String(reader.result || "");
-          const comma = s.indexOf(",");
-          resolve(comma >= 0 ? s.slice(comma + 1) : s);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+    function closeModal(){
+      modal.style.display = "none";
+      modalBody.innerHTML = "";
     }
+    modalClose.onclick = closeModal;
+    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+    window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
 
-    // ---- MAP ----
-    const map = L.map("map");
-    const tile = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap"
-    });
-    tile.addTo(map);
-    map.setView([-14.2350, -51.9253], 4);
+    // Timeline UI
+    const daysEl = document.getElementById("days");
+    const countPill = document.getElementById("countPill");
+    function fmtDate(iso){ try { return new Date(iso).toLocaleString(); } catch { return ""; } }
 
-    const timelineLayer = L.layerGroup().addTo(map); // eventos de ubicación (timeline)
-    const liveLayer = L.layerGroup().addTo(map);     // ubicaciones en vivo (presence)
-
-    function clearLayers(){
-      timelineLayer.clearLayers();
-      liveLayer.clearLayers();
-    }
-
-    function addTimelineMarker(ev){
-      const lat = Number(ev.lat), lon = Number(ev.lon);
-      if (!isFinite(lat) || !isFinite(lon)) return;
-
-      const popup = `
-        <div style="width:220px">
-          <div style="font-weight:700;margin-bottom:6px">${(ev.who||"Alguien")} 📍</div>
-          <div style="font-size:12px;color:#555;margin-bottom:8px">${ev.created ? fmtDate(ev.created) : ""}</div>
-          <a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener">Abrir en Google Maps</a>
-        </div>
-      `;
-      L.marker([lat, lon]).addTo(timelineLayer).bindPopup(popup);
-    }
-
-    function addLiveMarker(p){
-      const lat = Number(p.lat), lon = Number(p.lon);
-      if (!isFinite(lat) || !isFinite(lon)) return;
-
-      const ageSec = p.updated ? Math.max(0, Math.round((Date.now() - new Date(p.updated).getTime()) / 1000)) : null;
-
-      const popup = `
-        <div style="width:220px">
-          <div style="font-weight:700;margin-bottom:6px">🟢 ${p.who}</div>
-          <div style="font-size:12px;color:#555;margin-bottom:8px">Última señal: ${ageSec !== null ? ageSec + "s" : "?"}</div>
-          <a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener">Abrir en Google Maps</a>
-        </div>
-      `;
-      // circulito verde
-      L.circleMarker([lat, lon], { radius: 8 }).addTo(liveLayer).bindPopup(popup);
-    }
-
-    // ---- EVENTS / DAYS ----
     let cachedEvents = [];
     let selectedDayKey = null;
+
+    function todayKeyLocal(){
+      const d = new Date();
+      // local YYYY-MM-DD
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${dd}`;
+    }
 
     function groupByDay(events){
       const by = {};
@@ -217,11 +529,23 @@
         by[k] = by[k] || [];
         by[k].push(ev);
       });
-      // ordenar cada día por hora
-      Object.keys(by).forEach(k => {
-        by[k].sort((a,b) => new Date(a.created||0) - new Date(b.created||0));
-      });
+      Object.keys(by).forEach(k => by[k].sort((a,b) => new Date(a.created||0) - new Date(b.created||0)));
       return by;
+    }
+
+    async function deleteMedia(id){
+      const ok = confirm("¿Borrar este archivo?");
+      if (!ok) return;
+      setTimelineStatus("Borrando...");
+      try{
+        const res = await fetch(API_URL + "?delete=1&id=" + encodeURIComponent(id));
+        const js = await res.json();
+        if(!js.ok) throw new Error(js.error || "No se pudo borrar");
+        setTimelineStatus("✅ Borrado.");
+        await loadAll();
+      }catch(e){
+        setTimelineStatus("❌ " + (e.message || e));
+      }
     }
 
     function makeMediaTile(ev){
@@ -241,53 +565,43 @@
         preview = document.createElement("video");
         preview.src = ev.viewUrl;
         preview.controls = true;
-        preview.style.width = "100%";
-        preview.style.borderRadius = "10px";
+        preview.playsInline = true;
       } else {
         preview = document.createElement("img");
         preview.className = "thumb";
         preview.src = ev.thumb;
         preview.loading = "lazy";
-        preview.onerror = () => preview.remove(); // evita cuadrito roto
+        preview.onerror = () => preview.remove();
       }
 
-      const linkRow = document.createElement("div");
-      linkRow.style.marginTop = "8px";
+      // Opción 1: abrir modal al tocar miniatura
+      preview.addEventListener("click", (e) => {
+        e.preventDefault();
+        openModalForEvent(ev);
+      });
 
-      const a = document.createElement("a");
-      a.href = ev.viewUrl;
-      a.target = "_blank";
-      a.rel = "noopener";
-      a.textContent = "Ver en Drive";
+      const actions = document.createElement("div");
+      actions.className = "tileActions";
 
-      const delBtn = document.createElement("button");
-      delBtn.className = "btn btn-danger";
-      delBtn.style.marginLeft = "10px";
-      delBtn.textContent = "Borrar";
-      delBtn.onclick = async () => {
-        const ok = confirm("¿Seguro que querés borrar este archivo?");
-        if (!ok) return;
-        delBtn.disabled = true;
-        try {
-          const res = await fetch(API_URL + "?delete=1&id=" + encodeURIComponent(ev.id));
-          const js = await res.json();
-          if (!js.ok) throw new Error(js.error || "No se pudo borrar");
-          setStatus("✅ Borrado.");
-          await loadAll();
-        } catch (e) {
-          setStatus("❌ Error al borrar: " + (e.message || e));
-        } finally {
-          delBtn.disabled = false;
-        }
-      };
+      const link = document.createElement("a");
+      link.className = "link";
+      link.href = ev.viewUrl;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "Ver";
 
-      linkRow.appendChild(a);
-      linkRow.appendChild(delBtn);
+      const del = document.createElement("button");
+      del.className = "btn btnBad";
+      del.textContent = "Borrar";
+      del.onclick = () => deleteMedia(ev.id);
+
+      actions.appendChild(link);
+      actions.appendChild(del);
 
       tile.appendChild(name);
       tile.appendChild(meta);
       tile.appendChild(preview);
-      tile.appendChild(linkRow);
+      tile.appendChild(actions);
 
       return tile;
     }
@@ -305,45 +619,59 @@
       meta.textContent = ev.created ? fmtDate(ev.created) : "";
 
       const box = document.createElement("div");
+      box.className = "meta";
       box.style.padding = "12px";
-      box.style.border = "1px solid #eee";
-      box.style.borderRadius = "10px";
-      box.style.background = "#f8fbff";
+      box.style.borderRadius = "14px";
+      box.style.border = "1px solid rgba(255,255,255,.10)";
+      box.style.background = "rgba(0,0,0,.18)";
       box.innerHTML = `📍 ${Number(ev.lat).toFixed(5)}, ${Number(ev.lon).toFixed(5)}`;
 
-      const linkRow = document.createElement("div");
-      linkRow.style.marginTop = "8px";
+      const actions = document.createElement("div");
+      actions.className = "tileActions";
 
-      const a = document.createElement("a");
-      a.href = `https://www.google.com/maps?q=${ev.lat},${ev.lon}`;
-      a.target = "_blank";
-      a.rel = "noopener";
-      a.textContent = "Abrir en Google Maps";
+      const link = document.createElement("a");
+      link.className = "link";
+      link.href = `https://www.google.com/maps?q=${ev.lat},${ev.lon}`;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "Abrir Maps";
 
-      linkRow.appendChild(a);
+      actions.appendChild(link);
 
       tile.appendChild(name);
       tile.appendChild(meta);
       tile.appendChild(box);
-      tile.appendChild(linkRow);
+      tile.appendChild(actions);
 
       return tile;
     }
 
+    // Opción 3: Hoy arriba + abierto por defecto
     function renderDays(events){
       const by = groupByDay(events);
-      const keys = Object.keys(by).sort().reverse(); // más nuevo arriba
+      const keys = Object.keys(by).sort().reverse(); // newest first
+      const today = todayKeyLocal();
+
+      // Reordenar: Hoy primero si existe
+      const ordered = keys.includes(today)
+        ? [today, ...keys.filter(k => k !== today)]
+        : keys;
 
       countPill.textContent = String(events.length);
       daysEl.innerHTML = "";
 
-      keys.forEach(k => {
-        const dayWrap = document.createElement("div");
-        dayWrap.className = "day";
+      // seleccion por defecto: hoy si existe, sino nada
+      let defaultOpenKey = ordered.includes(today) ? today : null;
+
+      ordered.forEach((k, idx) => {
+        const day = document.createElement("div");
+        day.className = "day";
 
         const head = document.createElement("div");
         head.className = "dayHead";
-        head.innerHTML = `<b>${k}</b> <span class="small">${by[k].length} eventos</span>`;
+
+        const label = (k === today) ? `${k} (Hoy)` : k;
+        head.innerHTML = `<b>${label}</b><span class="pill">${by[k].length} eventos</span>`;
 
         const body = document.createElement("div");
         body.className = "dayBody";
@@ -352,73 +680,153 @@
         grid.className = "grid";
 
         by[k].forEach(ev => {
-          if (ev.type === "media") grid.appendChild(makeMediaTile(ev));
-          if (ev.type === "location") grid.appendChild(makeLocationTile(ev));
+          if(ev.type === "media") grid.appendChild(makeMediaTile(ev));
+          if(ev.type === "location") grid.appendChild(makeLocationTile(ev));
         });
 
         body.appendChild(grid);
 
         head.onclick = () => {
           const open = body.style.display === "block";
-          // cerrar todos
           Array.from(document.querySelectorAll(".dayBody")).forEach(x => x.style.display = "none");
-          // abrir este
           body.style.display = open ? "none" : "block";
-
           selectedDayKey = open ? null : k;
           renderMapFromSelectedDay();
         };
 
-        dayWrap.appendChild(head);
-        dayWrap.appendChild(body);
-        daysEl.appendChild(dayWrap);
+        day.appendChild(head);
+        day.appendChild(body);
+        daysEl.appendChild(day);
+
+        // abrir hoy automáticamente (solo una vez)
+        if (k === defaultOpenKey) {
+          body.style.display = "block";
+          selectedDayKey = k;
+        }
       });
+
+      // al terminar de renderizar, actualizamos el mapa con la selección por defecto
+      renderMapFromSelectedDay();
     }
 
     async function fetchEvents(){
       const res = await fetch(API_URL + "?mode=events");
       const js = await res.json();
-      if (!js.ok) throw new Error(js.error || "No se pudieron cargar eventos");
+      if(!js.ok) throw new Error(js.error || "No se pudieron cargar eventos");
       return js.events || [];
+    }
+
+    // Map
+    const map = L.map("map");
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+    map.setView([-14.2350, -51.9253], 4);
+
+    const timelineLayer = L.layerGroup().addTo(map);
+    const liveLayer = L.layerGroup().addTo(map);
+
+    function addTimelineMarker(ev){
+      const lat = Number(ev.lat), lon = Number(ev.lon);
+      if(!isFinite(lat) || !isFinite(lon)) return;
+      const popup = `<div style="width:220px">
+        <div style="font-weight:900;margin-bottom:6px">${(ev.who||"Alguien")} 📍</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.65);margin-bottom:8px">${ev.created ? fmtDate(ev.created) : ""}</div>
+        <a class="link" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener">Abrir Maps</a>
+      </div>`;
+      L.marker([lat, lon]).addTo(timelineLayer).bindPopup(popup);
+    }
+
+    function addLiveMarker(p){
+      const lat = Number(p.lat), lon = Number(p.lon);
+      if(!isFinite(lat) || !isFinite(lon)) return;
+      const ageSec = p.updated ? Math.max(0, Math.round((Date.now() - new Date(p.updated).getTime()) / 1000)) : null;
+      const popup = `<div style="width:220px">
+        <div style="font-weight:900;margin-bottom:6px">🟢 ${p.who}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.65);margin-bottom:8px">Última señal: ${ageSec !== null ? ageSec+"s" : "?"}</div>
+        <a class="link" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener">Abrir Maps</a>
+      </div>`;
+      L.circleMarker([lat, lon], { radius: 8 }).addTo(liveLayer).bindPopup(popup);
+    }
+
+    function renderMapFromSelectedDay(){
+      timelineLayer.clearLayers();
+      const locEvents = (cachedEvents || []).filter(ev => ev.type === "location");
+      const filtered = selectedDayKey ? locEvents.filter(ev => ev.dayKey === selectedDayKey) : locEvents;
+
+      const bounds = [];
+      filtered.forEach(ev => { addTimelineMarker(ev); bounds.push([ev.lat, ev.lon]); });
+      if(bounds.length) map.fitBounds(bounds, { padding: [30,30] });
     }
 
     async function fetchPresence(){
       const res = await fetch(API_URL + "?mode=presence");
       const js = await res.json();
-      if (!js.ok) throw new Error(js.error || "No se pudo cargar presencia");
+      if(!js.ok) throw new Error(js.error || "No se pudo cargar presencia");
       return js.presence || {};
     }
 
-    function renderMapFromSelectedDay(){
-      timelineLayer.clearLayers();
+    // Opción 4: panel “En vivo ahora”
+    const liveGrid = document.getElementById("liveGrid");
+    const liveCountPill = document.getElementById("liveCountPill");
 
-      const locEvents = (cachedEvents || []).filter(ev => ev.type === "location");
-      const filtered = selectedDayKey ? locEvents.filter(ev => ev.dayKey === selectedDayKey) : locEvents;
+    function renderLivePanel(presence){
+      const people = Object.keys(presence || {});
+      liveCountPill.textContent = String(people.length);
+      liveGrid.innerHTML = "";
 
-      const bounds = [];
-      filtered.forEach(ev => {
-        addTimelineMarker(ev);
-        bounds.push([ev.lat, ev.lon]);
+      // ordenar por más reciente (menor age)
+      people.sort((a,b) => new Date(presence[b].updated) - new Date(presence[a].updated));
+
+      people.forEach(name => {
+        const p = presence[name];
+        const ageSec = p.updated ? Math.max(0, Math.round((Date.now() - new Date(p.updated).getTime()) / 1000)) : null;
+
+        const card = document.createElement("div");
+        card.className = "liveCard";
+
+        const left = document.createElement("div");
+        left.className = "liveLeft";
+
+        const dot = document.createElement("div");
+        dot.className = "dot";
+
+        const info = document.createElement("div");
+        info.innerHTML = `<div class="liveName">${p.who}</div><div class="liveMeta">hace ${ageSec !== null ? ageSec : "?"}s</div>`;
+
+        left.appendChild(dot);
+        left.appendChild(info);
+
+        const btn = document.createElement("a");
+        btn.className = "btn btnPrimary";
+        btn.style.textDecoration = "none";
+        btn.href = `https://www.google.com/maps?q=${p.lat},${p.lon}`;
+        btn.target = "_blank";
+        btn.rel = "noopener";
+        btn.textContent = "Maps";
+
+        card.appendChild(left);
+        card.appendChild(btn);
+
+        liveGrid.appendChild(card);
       });
-
-      if (bounds.length) map.fitBounds(bounds, { padding: [30,30] });
     }
 
     async function renderLivePresence(){
       liveLayer.clearLayers();
-
-      try {
+      try{
         const presence = await fetchPresence();
         const people = Object.keys(presence || {});
         people.forEach(name => addLiveMarker(presence[name]));
-
+        renderLivePanel(presence);
         setMapStatus(`✅ En vivo: ${people.length} persona(s).`);
-      } catch (e) {
+      }catch(e){
         setMapStatus("❌ En vivo: " + (e.message || e));
       }
     }
 
-    // ---- GEO ----
+    // GEO
     function getCurrentPosition(){
       return new Promise((resolve, reject) => {
         if (!navigator.geolocation) return reject(new Error("Tu navegador no tiene GPS."));
@@ -430,79 +838,41 @@
       });
     }
 
-    // ---- ACTIONS ----
-    async function uploadFile(){
-      const file = fileInput.files && fileInput.files[0];
-      if (!file) { setStatus("Elegí un archivo primero."); return; }
-
-      uploadBtn.disabled = true;
-      setStatus("Subiendo...");
-
-      try {
-        const who = getWho();
-        const base64 = await toBase64(file);
-
-        const form = new URLSearchParams();
-        form.set("mode", "upload");
-        form.set("who", who);
-        form.set("fileName", file.name);
-        form.set("mimeType", file.type || "application/octet-stream");
-        form.set("data", base64);
-
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-          body: form.toString()
-        });
-
-        const js = await res.json();
-        if (!js.ok) throw new Error(js.error || "No se pudo subir");
-
-        setStatus("✅ Subido.");
-        fileInput.value = "";
-        await loadAll();
-
-      } catch (e) {
-        setStatus("❌ Error: " + (e.message || e));
-      } finally {
-        uploadBtn.disabled = false;
-      }
-    }
-
-    async function saveLocationEvent(){
+    // Save location event
+    const saveLocBtn = document.getElementById("saveLocBtn");
+    saveLocBtn.onclick = async () => {
       saveLocBtn.disabled = true;
       setMapStatus("Pidiendo ubicación...");
-
-      try {
+      try{
         const who = getWho();
         const pos = await getCurrentPosition();
 
         const form = new URLSearchParams();
-        form.set("mode", "saveLocation");
+        form.set("mode","saveLocation");
         form.set("who", who);
         form.set("lat", String(pos.coords.latitude));
         form.set("lon", String(pos.coords.longitude));
 
         const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          method:"POST",
+          headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
           body: form.toString()
         });
-
         const js = await res.json();
-        if (!js.ok) throw new Error(js.error || "No se pudo guardar ubicación");
+        if(!js.ok) throw new Error(js.error || "No se pudo guardar");
 
         setMapStatus("✅ Ubicación guardada en el timeline.");
         await loadAll();
-
-      } catch (e) {
+      }catch(e){
         setMapStatus("❌ " + (e.message || e));
-      } finally {
+      }finally{
         saveLocBtn.disabled = false;
       }
-    }
+    };
 
-    // ---- LIVE MODE (every 15s while page is open) ----
+    // LIVE mode
+    const startLiveBtn = document.getElementById("startLiveBtn");
+    const stopLiveBtn = document.getElementById("stopLiveBtn");
     let liveTimer = null;
 
     async function pingPresenceOnce(){
@@ -510,93 +880,121 @@
       const pos = await getCurrentPosition();
 
       const form = new URLSearchParams();
-      form.set("mode", "presencePing");
+      form.set("mode","presencePing");
       form.set("who", who);
       form.set("lat", String(pos.coords.latitude));
       form.set("lon", String(pos.coords.longitude));
 
       const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        method:"POST",
+        headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
         body: form.toString()
       });
-
       const js = await res.json();
-      if (!js.ok) throw new Error(js.error || "Ping falló");
+      if(!js.ok) throw new Error(js.error || "Ping falló");
     }
 
-    async function startLive(){
-      if (liveTimer) return;
-
+    startLiveBtn.onclick = async () => {
+      if(liveTimer) return;
       startLiveBtn.disabled = true;
-      setMapStatus("Activando modo encuentro... (aceptá permisos de GPS)");
-
-      try {
-        // primer ping para pedir permisos ya
+      setMapStatus("Activando modo encuentro... (aceptá permisos GPS)");
+      try{
         await pingPresenceOnce();
         await renderLivePresence();
 
         liveTimer = setInterval(async () => {
-          try {
+          try{
             await pingPresenceOnce();
             await renderLivePresence();
-          } catch (e) {
-            // no cortamos el timer por un error puntual
+          }catch(e){
             setMapStatus("⚠️ Live: " + (e.message || e));
           }
         }, 15000);
 
         stopLiveBtn.disabled = false;
-        setMapStatus("🟢 Modo encuentro activado (cada 15s).");
-      } catch (e) {
+        setMapStatus("🟢 Modo encuentro ON (cada 15s).");
+      }catch(e){
         setMapStatus("❌ No se pudo activar: " + (e.message || e));
         startLiveBtn.disabled = false;
       }
-    }
+    };
 
-    function stopLive(){
-      if (liveTimer) clearInterval(liveTimer);
+    stopLiveBtn.onclick = () => {
+      if(liveTimer) clearInterval(liveTimer);
       liveTimer = null;
       stopLiveBtn.disabled = true;
       startLiveBtn.disabled = false;
-      setMapStatus("🔴 Modo encuentro detenido.");
       liveLayer.clearLayers();
+      liveGrid.innerHTML = "";
+      liveCountPill.textContent = "0";
+      setMapStatus("🔴 Modo encuentro OFF.");
+    };
+
+    // Upload (FAB)
+    const refreshBtn = document.getElementById("refreshBtn");
+    const fabInput = document.getElementById("fabInput");
+    refreshBtn.onclick = () => loadAll();
+
+    function toBase64(file){
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => {
+          const s = String(r.result || "");
+          const c = s.indexOf(",");
+          resolve(c >= 0 ? s.slice(c+1) : s);
+        };
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
     }
 
+    async function uploadFile(file){
+      if(!file) return;
+      setTimelineStatus("Subiendo...");
+      try{
+        const who = getWho();
+        const base64 = await toBase64(file);
+
+        const form = new URLSearchParams();
+        form.set("mode","upload");
+        form.set("who", who);
+        form.set("fileName", file.name);
+        form.set("mimeType", file.type || "application/octet-stream");
+        form.set("data", base64);
+
+        const res = await fetch(API_URL, {
+          method:"POST",
+          headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
+          body: form.toString()
+        });
+
+        const js = await res.json();
+        if(!js.ok) throw new Error(js.error || "No se pudo subir");
+
+        setTimelineStatus("✅ Subido.");
+        await loadAll();
+      }catch(e){
+        setTimelineStatus("❌ " + (e.message || e));
+      }finally{
+        fabInput.value = "";
+      }
+    }
+    fabInput.onchange = () => uploadFile(fabInput.files && fabInput.files[0]);
+
+    // Load all
     async function loadAll(){
-      try {
+      try{
         cachedEvents = await fetchEvents();
         renderDays(cachedEvents);
-        renderMapFromSelectedDay();
         await renderLivePresence();
-        setStatus("✅ Actualizado.");
-      } catch (e) {
-        setStatus("❌ " + (e.message || e));
+        setTimelineStatus("✅ Actualizado.");
+      }catch(e){
+        setTimelineStatus("❌ " + (e.message || e));
       }
     }
 
-    // ---- Name init ----
-    function initNameUI(){
-      whoInput.value = localStorage.getItem(NAME_KEY) || "";
-      setNameStatus("Nombre actual: " + getWho());
-    }
-
-    saveNameBtn.onclick = () => {
-      setWho(whoInput.value);
-      setNameStatus("✅ Guardado. Nombre actual: " + getWho());
-    };
-
-    // Buttons
-    uploadBtn.onclick = uploadFile;
-    refreshBtn.onclick = loadAll;
-    saveLocBtn.onclick = saveLocationEvent;
-    reloadMapBtn.onclick = async () => { await loadAll(); setMapStatus("Mapa actualizado."); };
-
-    startLiveBtn.onclick = startLive;
-    stopLiveBtn.onclick = stopLive;
-
-    // Start
-    initNameUI();
+    // Init
+    initName();
     loadAll();
   </script>
 </body>
