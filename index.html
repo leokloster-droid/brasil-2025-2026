@@ -64,7 +64,7 @@
 
   <script>
     // 👇 Pegá acá la URL de tu Web App de Apps Script (la que termina en /exec)
-    const API_URL = "https://script.google.com/macros/s/AKfycbxkKSyHwc8jrtcpEGAVcUyIThCHhxGezEa45Nk4TFFqFqOdj6cBoOSn19RhPJZKluuaVQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbzE_lwSsuVa2VcoiI2F1dc-UpunUldNAW5tE-5WLATxuBCToo93HUwWKlE--EQpa7nG8A/exec";
 
     const photoInput = document.getElementById("photoInput");
     const uploadBtn = document.getElementById("uploadBtn");
@@ -126,7 +126,7 @@
         gallery.innerHTML = "";
         (data.photos || []).forEach(p => {
           const img = document.createElement("img");
-          img.src = p.url + "&confirm=t";
+          img.src = p.thumb;
           gallery.appendChild(img);
         });
       } catch (err) {
