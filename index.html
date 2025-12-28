@@ -12,230 +12,139 @@
     body { font-family: Arial, sans-serif; background:#f3f6fb; margin:0; padding:20px; }
     .header { text-align:center; margin-bottom:20px; }
     .header h1 { margin:0; font-size:34px; color:#0a4d8c; }
-    .card { background:#fff; border-radius:16px; padding:18px; margin:16px auto; max-width:980px; box-shadow:0 6px 24px rgba(0,0,0,.08); }
+    .small { font-size:12px; color:#666; }
+
+    .card { background:#fff; border-radius:16px; padding:18px; margin:16px auto; max-width:1060px; box-shadow:0 6px 24px rgba(0,0,0,.08); }
     .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+
     .btn { background:#0a4d8c; color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:700; }
     .btn:disabled { opacity:.6; cursor:not-allowed; }
     .btn-danger { background:#b42318; }
+    .btn-good { background:#0f8a4b; }
+    .btn-stop { background:#7a2e2e; }
+
     .status { margin-top:10px; font-size:14px; color:#333; }
-    .grid { display:flex; flex-wrap:wrap; gap:14px; margin-top:12px; }
+
+    input[type="text"]{ padding:10px 12px; border-radius:10px; border:1px solid #d6d6d6; min-width:220px; }
+
+    .day { margin-top:14px; border:1px solid #e6eef9; background:#f8fbff; border-radius:14px; overflow:hidden; }
+    .dayHead { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; cursor:pointer; }
+    .dayHead b { color:#0a4d8c; }
+    .dayBody { display:none; padding:12px 14px; background:#fff; }
+
+    .grid { display:flex; flex-wrap:wrap; gap:14px; }
     .tile { width:220px; background:#fff; border:1px solid #e6e6e6; border-radius:14px; padding:10px; box-shadow:0 4px 14px rgba(0,0,0,.06); }
     .thumb { width:100%; height:160px; object-fit:cover; border-radius:10px; background:#f2f2f2; }
     .name { font-weight:700; margin:8px 0 6px; font-size:13px; word-break:break-word; }
     .meta { font-size:12px; color:#555; margin-bottom:8px; }
-    .small { font-size:12px; color:#666; }
     a { color:#0a4d8c; text-decoration:none; }
     a:hover { text-decoration:underline; }
+
     #map { height: 420px; border-radius: 14px; overflow:hidden; border: 1px solid #e6e6e6; }
-    .list { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
-    .item { background:#f8fbff; border:1px solid #e6eef9; padding:10px; border-radius:12px; font-size:14px; }
     .pill { display:inline-block; font-size:12px; padding:3px 8px; border-radius:999px; background:#e8f1ff; color:#0a4d8c; font-weight:700; margin-left:6px;}
-    input[type="text"]{ padding:10px 12px; border-radius:10px; border:1px solid #d6d6d6; min-width:240px; }
+    .hint { font-size:12px; color:#555; margin-top:8px; }
   </style>
 </head>
 
 <body>
   <div class="header">
     <h1>🌴 Año Nuevo 2025–2026 🌊</h1>
-    <div class="small">Fotos + videos + mapa + ubicación en vivo (guardada cuando apretás el botón).</div>
+    <div class="small">Timeline por día + mapa + modo encuentro (en vivo cada 15s mientras la página esté abierta).</div>
   </div>
 
-  <!-- SUBIR -->
+  <div class="card">
+    <h2>👤 Tu nombre</h2>
+    <div class="row">
+      <input id="whoInput" type="text" placeholder="Ej: Leo" />
+      <button id="saveNameBtn" class="btn">Guardar nombre</button>
+      <span class="small">Se guarda en tu navegador.</span>
+    </div>
+    <div id="nameStatus" class="status"></div>
+  </div>
+
   <div class="card">
     <h2>📸 Subir fotos o videos</h2>
     <div class="row">
       <input id="fileInput" type="file" accept="image/*,video/*" />
       <button id="uploadBtn" class="btn">Subir</button>
-      <button id="refreshBtn" class="btn" type="button">Actualizar galería</button>
+      <button id="refreshBtn" class="btn" type="button">Actualizar</button>
     </div>
     <div id="status" class="status"></div>
   </div>
 
-  <!-- GALERIA -->
   <div class="card">
-    <h2>🖼️ Galería <span class="pill" id="countPill">0</span></h2>
-    <div id="gallery" class="grid"></div>
+    <h2>🗓️ Actividad por día <span class="pill" id="countPill">0</span></h2>
+    <div class="hint">Tocá un día para desplegar. Ahí vas a ver fotos/videos y ubicaciones (todo mezclado por hora).</div>
+    <div id="days"></div>
   </div>
 
-  <!-- MAPA -->
   <div class="card">
-    <h2>🗺️ Mapa del recorrido</h2>
+    <h2>🗺️ Mapa</h2>
     <div class="row">
-      <input id="whoInput" type="text" placeholder="Tu nombre (ej: Leo)" />
-      <button id="saveLocBtn" class="btn">📍 Guardar mi ubicación</button>
+      <button id="saveLocBtn" class="btn">📍 Guardar ubicación (evento)</button>
+
+      <button id="startLiveBtn" class="btn btn-good">🟢 Modo encuentro ON</button>
+      <button id="stopLiveBtn" class="btn btn-stop" disabled>🔴 Modo encuentro OFF</button>
+
       <button id="reloadMapBtn" class="btn">🔄 Actualizar mapa</button>
     </div>
-    <div class="small" style="margin-top:8px;">
-      Tip: el GPS se guarda cuando apretás el botón. Si no aceptás permisos, no puede guardar.
+
+    <div class="hint">
+      - “Guardar ubicación” crea un punto en el timeline.<br>
+      - “Modo encuentro” actualiza tu posición cada 15s mientras esta página esté abierta.<br>
+      - Si cerrás la pestaña, el seguimiento se corta (limitación del navegador).
     </div>
 
-    <div style="margin-top:14px;">
-      <div id="map"></div>
-      <div class="list" id="pointsList"></div>
-      <div id="mapStatus" class="status"></div>
-    </div>
+    <div id="map" style="margin-top:14px;"></div>
+    <div id="mapStatus" class="status"></div>
   </div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // ✅ Pegá acá tu Web App de Apps Script (la que termina en /exec)
-    const API_URL = "https://script.google.com/macros/s/AKfycbwWDly1_r5N1wIf_oGShwG7J0HAQIQIuJy7L5Qy9EdhS8o27nrIFyKj8E7wT2AJshTvHA/exec";
+    // ✅ Tu API confirmada
+    const API_URL = "https://script.google.com/macros/s/AKfycbwTQGsA4m3_93M-Ir6udGzEhi0ijC2xgeoIjGAH4voL0K_55kcezFZ9_QIICX39JNL1HA/exec";
 
-    // ---- UI ----
+    // UI
+    const whoInput = document.getElementById("whoInput");
+    const saveNameBtn = document.getElementById("saveNameBtn");
+    const nameStatus = document.getElementById("nameStatus");
+
     const fileInput = document.getElementById("fileInput");
     const uploadBtn = document.getElementById("uploadBtn");
     const refreshBtn = document.getElementById("refreshBtn");
     const statusEl = document.getElementById("status");
-    const galleryEl = document.getElementById("gallery");
     const countPill = document.getElementById("countPill");
 
-    const whoInput = document.getElementById("whoInput");
+    const daysEl = document.getElementById("days");
+
     const saveLocBtn = document.getElementById("saveLocBtn");
+    const startLiveBtn = document.getElementById("startLiveBtn");
+    const stopLiveBtn = document.getElementById("stopLiveBtn");
     const reloadMapBtn = document.getElementById("reloadMapBtn");
-    const pointsList = document.getElementById("pointsList");
     const mapStatus = document.getElementById("mapStatus");
 
-    function setStatus(msg) { statusEl.textContent = msg || ""; }
-    function setMapStatus(msg) { mapStatus.textContent = msg || ""; }
+    function setStatus(msg){ statusEl.textContent = msg || ""; }
+    function setMapStatus(msg){ mapStatus.textContent = msg || ""; }
+    function setNameStatus(msg){ nameStatus.textContent = msg || ""; }
 
-    function fmtDate(iso) {
+    // Name storage
+    const NAME_KEY = "brasil_who_v1";
+    function getWho(){
+      const v = (localStorage.getItem(NAME_KEY) || "").trim();
+      return v || "Alguien";
+    }
+    function setWho(v){
+      localStorage.setItem(NAME_KEY, (v||"").trim());
+    }
+
+    // Dates
+    function fmtDate(iso){
       try { return new Date(iso).toLocaleString(); } catch { return ""; }
     }
 
-    // ---------------------------
-    //  GALERÍA (fotos/videos)
-    // ---------------------------
-    function makeTile(p) {
-      const tile = document.createElement("div");
-      tile.className = "tile";
-
-      const name = document.createElement("div");
-      name.className = "name";
-      name.textContent = p.name || "";
-
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.textContent = (p.isVideo ? "🎬 Video" : "🖼️ Foto") + (p.created ? " • " + fmtDate(p.created) : "");
-
-      let preview;
-      if (p.isVideo) {
-        preview = document.createElement("video");
-        preview.src = p.viewUrl;
-        preview.controls = true;
-        preview.style.width = "100%";
-        preview.style.borderRadius = "10px";
-      } else {
-        preview = document.createElement("img");
-        preview.className = "thumb";
-        preview.src = p.thumb;
-        preview.loading = "lazy";
-      }
-
-      const linkRow = document.createElement("div");
-      linkRow.style.marginTop = "8px";
-
-      const a = document.createElement("a");
-      a.href = p.viewUrl;
-      a.target = "_blank";
-      a.rel = "noopener";
-      a.textContent = "Ver en Drive";
-
-      const delBtn = document.createElement("button");
-      delBtn.className = "btn btn-danger";
-      delBtn.style.marginLeft = "10px";
-      delBtn.textContent = "Borrar";
-      delBtn.onclick = async () => {
-        const ok = confirm("¿Seguro que querés borrar este archivo? (foto/video)");
-        if (!ok) return;
-        delBtn.disabled = true;
-        try {
-          const res = await fetch(API_URL + "?delete=1&id=" + encodeURIComponent(p.id));
-          const json = await res.json();
-          if (!json.ok) throw new Error(json.error || "No se pudo borrar");
-          setStatus("✅ Borrado.");
-          await loadGallery();
-        } catch (e) {
-          console.error(e);
-          setStatus("❌ Error al borrar: " + (e.message || e));
-        } finally {
-          delBtn.disabled = false;
-        }
-      };
-
-      linkRow.appendChild(a);
-      linkRow.appendChild(delBtn);
-
-      tile.appendChild(name);
-      tile.appendChild(meta);
-      tile.appendChild(preview);
-      tile.appendChild(linkRow);
-      return tile;
-    }
-
-    async function loadGallery() {
-      setStatus("Cargando galería...");
-      galleryEl.innerHTML = "";
-      try {
-        const res = await fetch(API_URL + "?mode=gallery");
-        const json = await res.json();
-
-        if (!json.ok) throw new Error(json.error || "No se pudo cargar galería");
-
-        const list = (json.photos || []);
-        countPill.textContent = String(list.length);
-
-        if (list.length === 0) {
-          setStatus("Todavía no hay fotos/videos 🙂");
-          return;
-        }
-
-        list.forEach(p => galleryEl.appendChild(makeTile(p)));
-        setStatus("✅ Galería cargada: " + list.length + " archivos.");
-      } catch (e) {
-        console.error(e);
-        setStatus("❌ Error al cargar: " + (e.message || e));
-      }
-    }
-
-    async function uploadFile() {
-      const file = fileInput.files && fileInput.files[0];
-      if (!file) { setStatus("Elegí un archivo primero."); return; }
-
-      uploadBtn.disabled = true;
-      setStatus("Subiendo... (no cierres la pestaña)");
-
-      try {
-        const base64 = await toBase64(file);
-
-        const form = new URLSearchParams();
-        form.set("mode", "upload");
-        form.set("fileName", file.name);
-        form.set("mimeType", file.type || "application/octet-stream");
-        form.set("data", base64);
-
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-          body: form.toString()
-        });
-
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || "No se pudo subir");
-
-        setStatus("✅ Subido: " + (json.name || file.name));
-        fileInput.value = "";
-        await loadGallery();
-
-      } catch (e) {
-        console.error(e);
-        setStatus("❌ Error al subir: " + (e.message || e));
-      } finally {
-        uploadBtn.disabled = false;
-      }
-    }
-
+    // Base64
     function toBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -249,75 +158,268 @@
       });
     }
 
-    // ---------------------------
-    //  MAPA + GPS
-    // ---------------------------
-    const map = L.map('map');
-    const markersLayer = L.layerGroup().addTo(map);
-
-    // OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // ---- MAP ----
+    const map = L.map("map");
+    const tile = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
-
-    // Vista inicial (aprox Brasil)
+      attribution: "&copy; OpenStreetMap"
+    });
+    tile.addTo(map);
     map.setView([-14.2350, -51.9253], 4);
 
-    async function loadMapPoints() {
-      setMapStatus("Cargando puntos...");
-      markersLayer.clearLayers();
-      pointsList.innerHTML = "";
+    const timelineLayer = L.layerGroup().addTo(map); // eventos de ubicación (timeline)
+    const liveLayer = L.layerGroup().addTo(map);     // ubicaciones en vivo (presence)
 
-      try {
-        const res = await fetch(API_URL + "?mode=locations");
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || "No se pudieron cargar ubicaciones");
+    function clearLayers(){
+      timelineLayer.clearLayers();
+      liveLayer.clearLayers();
+    }
 
-        const pts = json.points || [];
-        if (pts.length === 0) {
-          setMapStatus("Todavía no hay ubicaciones guardadas 🙂");
-          return;
+    function addTimelineMarker(ev){
+      const lat = Number(ev.lat), lon = Number(ev.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return;
+
+      const popup = `
+        <div style="width:220px">
+          <div style="font-weight:700;margin-bottom:6px">${(ev.who||"Alguien")} 📍</div>
+          <div style="font-size:12px;color:#555;margin-bottom:8px">${ev.created ? fmtDate(ev.created) : ""}</div>
+          <a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener">Abrir en Google Maps</a>
+        </div>
+      `;
+      L.marker([lat, lon]).addTo(timelineLayer).bindPopup(popup);
+    }
+
+    function addLiveMarker(p){
+      const lat = Number(p.lat), lon = Number(p.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return;
+
+      const ageSec = p.updated ? Math.max(0, Math.round((Date.now() - new Date(p.updated).getTime()) / 1000)) : null;
+
+      const popup = `
+        <div style="width:220px">
+          <div style="font-weight:700;margin-bottom:6px">🟢 ${p.who}</div>
+          <div style="font-size:12px;color:#555;margin-bottom:8px">Última señal: ${ageSec !== null ? ageSec + "s" : "?"}</div>
+          <a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener">Abrir en Google Maps</a>
+        </div>
+      `;
+      // circulito verde
+      L.circleMarker([lat, lon], { radius: 8 }).addTo(liveLayer).bindPopup(popup);
+    }
+
+    // ---- EVENTS / DAYS ----
+    let cachedEvents = [];
+    let selectedDayKey = null;
+
+    function groupByDay(events){
+      const by = {};
+      (events || []).forEach(ev => {
+        const k = ev.dayKey || (ev.created ? String(ev.created).slice(0,10) : "sin-fecha");
+        by[k] = by[k] || [];
+        by[k].push(ev);
+      });
+      // ordenar cada día por hora
+      Object.keys(by).forEach(k => {
+        by[k].sort((a,b) => new Date(a.created||0) - new Date(b.created||0));
+      });
+      return by;
+    }
+
+    function makeMediaTile(ev){
+      const tile = document.createElement("div");
+      tile.className = "tile";
+
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = `${ev.who || "Alguien"} • ${ev.name || ""}`;
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = (ev.isVideo ? "🎬 Video" : "🖼️ Foto") + (ev.created ? " • " + fmtDate(ev.created) : "");
+
+      let preview;
+      if (ev.isVideo) {
+        preview = document.createElement("video");
+        preview.src = ev.viewUrl;
+        preview.controls = true;
+        preview.style.width = "100%";
+        preview.style.borderRadius = "10px";
+      } else {
+        preview = document.createElement("img");
+        preview.className = "thumb";
+        preview.src = ev.thumb;
+        preview.loading = "lazy";
+        preview.onerror = () => preview.remove(); // evita cuadrito roto
+      }
+
+      const linkRow = document.createElement("div");
+      linkRow.style.marginTop = "8px";
+
+      const a = document.createElement("a");
+      a.href = ev.viewUrl;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = "Ver en Drive";
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn btn-danger";
+      delBtn.style.marginLeft = "10px";
+      delBtn.textContent = "Borrar";
+      delBtn.onclick = async () => {
+        const ok = confirm("¿Seguro que querés borrar este archivo?");
+        if (!ok) return;
+        delBtn.disabled = true;
+        try {
+          const res = await fetch(API_URL + "?delete=1&id=" + encodeURIComponent(ev.id));
+          const js = await res.json();
+          if (!js.ok) throw new Error(js.error || "No se pudo borrar");
+          setStatus("✅ Borrado.");
+          await loadAll();
+        } catch (e) {
+          setStatus("❌ Error al borrar: " + (e.message || e));
+        } finally {
+          delBtn.disabled = false;
         }
+      };
 
-        // Orden por más nuevo
-        pts.sort((a,b) => new Date(b.created) - new Date(a.created));
+      linkRow.appendChild(a);
+      linkRow.appendChild(delBtn);
 
-        const bounds = [];
+      tile.appendChild(name);
+      tile.appendChild(meta);
+      tile.appendChild(preview);
+      tile.appendChild(linkRow);
 
-        pts.forEach(p => {
-          const lat = Number(p.lat), lon = Number(p.lon);
-          if (!isFinite(lat) || !isFinite(lon)) return;
+      return tile;
+    }
 
-          bounds.push([lat, lon]);
+    function makeLocationTile(ev){
+      const tile = document.createElement("div");
+      tile.className = "tile";
 
-          const popup = `
-            <div style="width:220px">
-              <div style="font-weight:700;margin-bottom:6px">${p.who || "Alguien"} 📍</div>
-              <div style="font-size:12px;color:#555;margin-bottom:8px">${p.created ? fmtDate(p.created) : ""}</div>
-              <a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener">Abrir en Google Maps</a>
-            </div>
-          `;
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = `${ev.who || "Alguien"} • Ubicación`;
 
-          L.marker([lat, lon]).addTo(markersLayer).bindPopup(popup);
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = ev.created ? fmtDate(ev.created) : "";
 
-          const item = document.createElement("div");
-          item.className = "item";
-          item.innerHTML = `<b>${p.who || "Alguien"}</b> • ${p.created ? fmtDate(p.created) : ""}<br/>
-            <a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${lat},${lon}">Ver en Maps</a>`;
-          pointsList.appendChild(item);
+      const box = document.createElement("div");
+      box.style.padding = "12px";
+      box.style.border = "1px solid #eee";
+      box.style.borderRadius = "10px";
+      box.style.background = "#f8fbff";
+      box.innerHTML = `📍 ${Number(ev.lat).toFixed(5)}, ${Number(ev.lon).toFixed(5)}`;
+
+      const linkRow = document.createElement("div");
+      linkRow.style.marginTop = "8px";
+
+      const a = document.createElement("a");
+      a.href = `https://www.google.com/maps?q=${ev.lat},${ev.lon}`;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = "Abrir en Google Maps";
+
+      linkRow.appendChild(a);
+
+      tile.appendChild(name);
+      tile.appendChild(meta);
+      tile.appendChild(box);
+      tile.appendChild(linkRow);
+
+      return tile;
+    }
+
+    function renderDays(events){
+      const by = groupByDay(events);
+      const keys = Object.keys(by).sort().reverse(); // más nuevo arriba
+
+      countPill.textContent = String(events.length);
+      daysEl.innerHTML = "";
+
+      keys.forEach(k => {
+        const dayWrap = document.createElement("div");
+        dayWrap.className = "day";
+
+        const head = document.createElement("div");
+        head.className = "dayHead";
+        head.innerHTML = `<b>${k}</b> <span class="small">${by[k].length} eventos</span>`;
+
+        const body = document.createElement("div");
+        body.className = "dayBody";
+
+        const grid = document.createElement("div");
+        grid.className = "grid";
+
+        by[k].forEach(ev => {
+          if (ev.type === "media") grid.appendChild(makeMediaTile(ev));
+          if (ev.type === "location") grid.appendChild(makeLocationTile(ev));
         });
 
-        if (bounds.length) map.fitBounds(bounds, { padding: [30,30] });
-        setMapStatus("✅ Puntos cargados: " + pts.length);
+        body.appendChild(grid);
 
+        head.onclick = () => {
+          const open = body.style.display === "block";
+          // cerrar todos
+          Array.from(document.querySelectorAll(".dayBody")).forEach(x => x.style.display = "none");
+          // abrir este
+          body.style.display = open ? "none" : "block";
+
+          selectedDayKey = open ? null : k;
+          renderMapFromSelectedDay();
+        };
+
+        dayWrap.appendChild(head);
+        dayWrap.appendChild(body);
+        daysEl.appendChild(dayWrap);
+      });
+    }
+
+    async function fetchEvents(){
+      const res = await fetch(API_URL + "?mode=events");
+      const js = await res.json();
+      if (!js.ok) throw new Error(js.error || "No se pudieron cargar eventos");
+      return js.events || [];
+    }
+
+    async function fetchPresence(){
+      const res = await fetch(API_URL + "?mode=presence");
+      const js = await res.json();
+      if (!js.ok) throw new Error(js.error || "No se pudo cargar presencia");
+      return js.presence || {};
+    }
+
+    function renderMapFromSelectedDay(){
+      timelineLayer.clearLayers();
+
+      const locEvents = (cachedEvents || []).filter(ev => ev.type === "location");
+      const filtered = selectedDayKey ? locEvents.filter(ev => ev.dayKey === selectedDayKey) : locEvents;
+
+      const bounds = [];
+      filtered.forEach(ev => {
+        addTimelineMarker(ev);
+        bounds.push([ev.lat, ev.lon]);
+      });
+
+      if (bounds.length) map.fitBounds(bounds, { padding: [30,30] });
+    }
+
+    async function renderLivePresence(){
+      liveLayer.clearLayers();
+
+      try {
+        const presence = await fetchPresence();
+        const people = Object.keys(presence || {});
+        people.forEach(name => addLiveMarker(presence[name]));
+
+        setMapStatus(`✅ En vivo: ${people.length} persona(s).`);
       } catch (e) {
-        console.error(e);
-        setMapStatus("❌ Error: " + (e.message || e));
+        setMapStatus("❌ En vivo: " + (e.message || e));
       }
     }
 
-    function getCurrentPosition() {
+    // ---- GEO ----
+    function getCurrentPosition(){
       return new Promise((resolve, reject) => {
         if (!navigator.geolocation) return reject(new Error("Tu navegador no tiene GPS."));
         navigator.geolocation.getCurrentPosition(
@@ -328,24 +430,24 @@
       });
     }
 
-    async function saveMyLocation() {
-      const who = (whoInput.value || "").trim() || "Alguien";
+    // ---- ACTIONS ----
+    async function uploadFile(){
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) { setStatus("Elegí un archivo primero."); return; }
 
-      saveLocBtn.disabled = true;
-      setMapStatus("Pidiendo ubicación al teléfono...");
+      uploadBtn.disabled = true;
+      setStatus("Subiendo...");
 
       try {
-        const pos = await getCurrentPosition();
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-
-        setMapStatus("Guardando ubicación...");
+        const who = getWho();
+        const base64 = await toBase64(file);
 
         const form = new URLSearchParams();
-        form.set("mode", "saveLocation");
+        form.set("mode", "upload");
         form.set("who", who);
-        form.set("lat", String(lat));
-        form.set("lon", String(lon));
+        form.set("fileName", file.name);
+        form.set("mimeType", file.type || "application/octet-stream");
+        form.set("data", base64);
 
         const res = await fetch(API_URL, {
           method: "POST",
@@ -353,29 +455,149 @@
           body: form.toString()
         });
 
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || "No se pudo guardar ubicación");
+        const js = await res.json();
+        if (!js.ok) throw new Error(js.error || "No se pudo subir");
 
-        setMapStatus("✅ Ubicación guardada.");
-        await loadMapPoints();
+        setStatus("✅ Subido.");
+        fileInput.value = "";
+        await loadAll();
 
       } catch (e) {
-        console.error(e);
+        setStatus("❌ Error: " + (e.message || e));
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    }
+
+    async function saveLocationEvent(){
+      saveLocBtn.disabled = true;
+      setMapStatus("Pidiendo ubicación...");
+
+      try {
+        const who = getWho();
+        const pos = await getCurrentPosition();
+
+        const form = new URLSearchParams();
+        form.set("mode", "saveLocation");
+        form.set("who", who);
+        form.set("lat", String(pos.coords.latitude));
+        form.set("lon", String(pos.coords.longitude));
+
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: form.toString()
+        });
+
+        const js = await res.json();
+        if (!js.ok) throw new Error(js.error || "No se pudo guardar ubicación");
+
+        setMapStatus("✅ Ubicación guardada en el timeline.");
+        await loadAll();
+
+      } catch (e) {
         setMapStatus("❌ " + (e.message || e));
       } finally {
         saveLocBtn.disabled = false;
       }
     }
 
-    // ---- Eventos ----
-    uploadBtn.addEventListener("click", uploadFile);
-    refreshBtn.addEventListener("click", loadGallery);
-    reloadMapBtn.addEventListener("click", loadMapPoints);
-    saveLocBtn.addEventListener("click", saveMyLocation);
+    // ---- LIVE MODE (every 15s while page is open) ----
+    let liveTimer = null;
 
-    // ---- Inicio ----
-    loadGallery();
-    loadMapPoints();
+    async function pingPresenceOnce(){
+      const who = getWho();
+      const pos = await getCurrentPosition();
+
+      const form = new URLSearchParams();
+      form.set("mode", "presencePing");
+      form.set("who", who);
+      form.set("lat", String(pos.coords.latitude));
+      form.set("lon", String(pos.coords.longitude));
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        body: form.toString()
+      });
+
+      const js = await res.json();
+      if (!js.ok) throw new Error(js.error || "Ping falló");
+    }
+
+    async function startLive(){
+      if (liveTimer) return;
+
+      startLiveBtn.disabled = true;
+      setMapStatus("Activando modo encuentro... (aceptá permisos de GPS)");
+
+      try {
+        // primer ping para pedir permisos ya
+        await pingPresenceOnce();
+        await renderLivePresence();
+
+        liveTimer = setInterval(async () => {
+          try {
+            await pingPresenceOnce();
+            await renderLivePresence();
+          } catch (e) {
+            // no cortamos el timer por un error puntual
+            setMapStatus("⚠️ Live: " + (e.message || e));
+          }
+        }, 15000);
+
+        stopLiveBtn.disabled = false;
+        setMapStatus("🟢 Modo encuentro activado (cada 15s).");
+      } catch (e) {
+        setMapStatus("❌ No se pudo activar: " + (e.message || e));
+        startLiveBtn.disabled = false;
+      }
+    }
+
+    function stopLive(){
+      if (liveTimer) clearInterval(liveTimer);
+      liveTimer = null;
+      stopLiveBtn.disabled = true;
+      startLiveBtn.disabled = false;
+      setMapStatus("🔴 Modo encuentro detenido.");
+      liveLayer.clearLayers();
+    }
+
+    async function loadAll(){
+      try {
+        cachedEvents = await fetchEvents();
+        renderDays(cachedEvents);
+        renderMapFromSelectedDay();
+        await renderLivePresence();
+        setStatus("✅ Actualizado.");
+      } catch (e) {
+        setStatus("❌ " + (e.message || e));
+      }
+    }
+
+    // ---- Name init ----
+    function initNameUI(){
+      whoInput.value = localStorage.getItem(NAME_KEY) || "";
+      setNameStatus("Nombre actual: " + getWho());
+    }
+
+    saveNameBtn.onclick = () => {
+      setWho(whoInput.value);
+      setNameStatus("✅ Guardado. Nombre actual: " + getWho());
+    };
+
+    // Buttons
+    uploadBtn.onclick = uploadFile;
+    refreshBtn.onclick = loadAll;
+    saveLocBtn.onclick = saveLocationEvent;
+    reloadMapBtn.onclick = async () => { await loadAll(); setMapStatus("Mapa actualizado."); };
+
+    startLiveBtn.onclick = startLive;
+    stopLiveBtn.onclick = stopLive;
+
+    // Start
+    initNameUI();
+    loadAll();
   </script>
 </body>
 </html>
