@@ -1,143 +1,227 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>🌴 Año Nuevo 2025–2026 🌊</title>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Año Nuevo 2025–2026</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f4f8;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: #0a4d8c;
-    }
-    .section {
-      background: white;
-      padding: 20px;
-      margin: 20px auto;
-      max-width: 800px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    button {
-      padding: 10px 18px;
-      background: #0a4d8c;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
-    #gallery img {
-      width: 150px;
-      height: 150px;
-      object-fit: cover;
-      margin: 8px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
+    body { font-family: Arial, sans-serif; background:#f4f8ff; margin:0; padding:20px; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    h1 { text-align:center; color:#0a4d8c; margin: 10px 0 25px; }
+    .card { background:#fff; border-radius:14px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.08); margin:18px 0; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    button { cursor:pointer; border:0; border-radius:10px; padding:10px 14px; font-weight:700; }
+    .btn-main { background:#0a4d8c; color:#fff; }
+    .btn-del { background:#c0392b; color:#fff; }
+    .hint { color:#444; margin-top:10px; }
+    #status { margin-top:10px; color:#0a4d8c; font-weight:700; }
+    #gallery { display:grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap:14px; margin-top:10px; }
+    .tile { background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.08); }
+    .tile img, .tile video { width:100%; height:160px; object-fit:cover; display:block; background:#eee; }
+    .tile .meta { padding:10px; display:flex; flex-direction:column; gap:8px; }
+    .small { font-size:12px; color:#555; word-break:break-word; }
+    a { color:#0a4d8c; text-decoration:none; font-weight:700; }
   </style>
 </head>
 <body>
+  <div class="wrap">
+    <h1>🌴 Año Nuevo 2025–2026 🌊</h1>
 
-  <h1>🌴 Año Nuevo 2025–2026 🌊</h1>
+    <div class="card">
+      <h2>📸 Subir fotos o videos del viaje</h2>
+      <div class="row">
+        <input type="file" id="photoInput" accept="image/*,video/*" />
+        <button id="uploadBtn" class="btn-main">Subir</button>
+      </div>
+      <div id="status"></div>
+      <div class="hint">Tip: si subís algo mal, vas a ver un botón 🗑 “Borrar” en TU celu/PC (solo vos lo podés borrar).</div>
+    </div>
 
-  <div class="section">
-    <h2>📸 Subir fotos del viaje</h2>
-    <input type="file" id="photoInput" accept="image/*">
-    <button id="uploadBtn">Subir foto</button>
-    <p id="status"></p>
-  </div>
-
-  <div class="section">
-    <h2>🖼️ Galería</h2>
-    <div id="gallery"></div>
+    <div class="card">
+      <h2>🖼️ Galería</h2>
+      <div id="gallery"></div>
+    </div>
   </div>
 
   <script>
-    // 👇 Pegá acá la URL de tu Web App de Apps Script (la que termina en /exec)
-    const API_URL = "https://script.google.com/macros/s/AKfycbzE_lwSsuVa2VcoiI2F1dc-UpunUldNAW5tE-5WLATxuBCToo93HUwWKlE--EQpa7nG8A/exec";
+    // 👇 Pegá acá tu URL del Web App (termina en /exec)
+    const API_URL = "https://script.google.com/macros/s/AKfycbxYdUAwsRO3RzPoPndLxc3dIRF71GBOsBU1U2r5dbrlIYnpjnJkr54ldlhpsEPVyOKbpg/exec";
 
     const photoInput = document.getElementById("photoInput");
     const uploadBtn = document.getElementById("uploadBtn");
     const statusEl = document.getElementById("status");
     const gallery = document.getElementById("gallery");
 
+    // Guardamos tokens por archivo en el navegador (solo para el que sube)
+    const TOKENS_KEY = "deleteTokens_v1";
+    function loadTokens() {
+      try { return JSON.parse(localStorage.getItem(TOKENS_KEY) || "{}"); }
+      catch { return {}; }
+    }
+    function saveTokens(tokens) {
+      localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
+    }
+
+    async function toBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const s = String(reader.result);
+          const base64 = s.split(",")[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
     async function uploadPhoto() {
-      const file = photoInput.files[0];
+      const file = photoInput.files && photoInput.files[0];
       if (!file) {
-        alert("Elegí una foto primero 🙂");
+        statusEl.textContent = "Elegí un archivo primero 🙂";
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = async function() {
-        const base64 = reader.result.split(",")[1];
+      statusEl.textContent = "Subiendo...";
+      uploadBtn.disabled = true;
 
-        uploadBtn.disabled = true;
-        statusEl.textContent = "Subiendo foto...";
+      try {
+        const data = await toBase64(file);
 
         const body = new URLSearchParams();
-        body.append("data", base64);
-        body.append("mimeType", file.type);
-        body.append("fileName", file.name);
+        body.set("action", "upload");
+        body.set("data", data);
+        body.set("mimeType", file.type || "application/octet-stream");
+        body.set("fileName", file.name || ("archivo_" + Date.now()));
 
-        try {
-          const res = await fetch(API_URL, {
-            method: "POST",
-            body: body
-          });
-          const data = await res.json();
-          if (!data.ok) {
-            console.error(data);
-            statusEl.textContent = "Error al subir la foto 😢";
-          } else {
-            statusEl.textContent = "Foto subida ✔️";
-            photoInput.value = "";
-            loadGallery();
-          }
-        } catch (err) {
-          console.error(err);
-          statusEl.textContent = "Error de conexión 😢";
-        } finally {
-          uploadBtn.disabled = false;
-        }
-      };
-      reader.readAsDataURL(file);
+        const res = await fetch(API_URL, { method: "POST", body });
+        const json = await res.json();
+
+        if (!json.ok) throw new Error(json.error || "No se pudo subir");
+
+        // guardo token de borrado local
+        const tokens = loadTokens();
+        tokens[json.id] = json.deleteToken;
+        saveTokens(tokens);
+
+        statusEl.textContent = "✅ Subido!";
+
+        photoInput.value = "";
+        await loadGallery();
+
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "❌ Error: " + (err.message || err);
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    }
+
+    async function deleteFile(fileId) {
+      const tokens = loadTokens();
+      const token = tokens[fileId];
+
+      if (!token) {
+        alert("En este dispositivo no está la llave para borrar ese archivo (solo puede borrar quien subió).");
+        return;
+      }
+
+      if (!confirm("¿Seguro que querés borrar este archivo?")) return;
+
+      try {
+        statusEl.textContent = "Borrando...";
+        const body = new URLSearchParams();
+        body.set("action", "delete");
+        body.set("id", fileId);
+        body.set("token", token);
+
+        const res = await fetch(API_URL, { method: "POST", body });
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "No se pudo borrar");
+
+        // borrar token local
+        delete tokens[fileId];
+        saveTokens(tokens);
+
+        statusEl.textContent = "🗑️ Borrado!";
+        await loadGallery();
+
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "❌ Error al borrar: " + (err.message || err);
+      }
+    }
+
+    function makeTile(p) {
+      const tile = document.createElement("div");
+      tile.className = "tile";
+
+      // Visual: si es video intentamos video directo; si no, imagen miniatura
+      let media;
+      if (p.isVideo) {
+        media = document.createElement("video");
+        media.controls = true;
+        media.src = p.directUrl; // si algún navegador lo bloquea, al menos tenés el link "Ver"
+      } else {
+        media = document.createElement("img");
+        media.src = p.thumb;
+        media.alt = p.name || "foto";
+      }
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+
+      const a = document.createElement("a");
+      a.href = p.viewUrl;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = "Ver en Drive";
+
+      const small = document.createElement("div");
+      small.className = "small";
+      small.textContent = (p.name || "") + (p.created ? (" • " + new Date(p.created).toLocaleString()) : "");
+
+      // Botón borrar solo si tengo token en ESTE navegador
+      const tokens = loadTokens();
+      if (tokens[p.id]) {
+        const del = document.createElement("button");
+        del.className = "btn-del";
+        del.textContent = "🗑 Borrar (lo subí yo)";
+        del.onclick = () => deleteFile(p.id);
+        meta.appendChild(del);
+      }
+
+      meta.appendChild(a);
+      meta.appendChild(small);
+
+      tile.appendChild(media);
+      tile.appendChild(meta);
+      return tile;
     }
 
     async function loadGallery() {
-      gallery.innerHTML = "Cargando fotos...";
       try {
-        const res = await fetch(API_URL);
-        const data = await res.json();
-        if (!data.ok) {
-          gallery.textContent = "No se pudieron cargar las fotos.";
-          return;
-        }
         gallery.innerHTML = "";
-        (data.photos || []).forEach(p => {
-          const img = document.createElement("img");
-          img.src = p.thumb;
-          gallery.appendChild(img);
+        const res = await fetch(API_URL);
+        const json = await res.json();
+
+        if (!json.ok) throw new Error(json.error || "No se pudo cargar galería");
+
+        (json.photos || []).forEach(p => {
+          gallery.appendChild(makeTile(p));
         });
+
+        if ((json.photos || []).length === 0) {
+          gallery.textContent = "Todavía no hay fotos/videos 🙂";
+        }
       } catch (err) {
         console.error(err);
-        gallery.textContent = "Error al cargar las fotos.";
+        gallery.textContent = "Error al cargar galería: " + (err.message || err);
       }
     }
 
     uploadBtn.addEventListener("click", uploadPhoto);
-    loadGallery(); // carga inicial
+    loadGallery();
   </script>
-
 </body>
 </html>
