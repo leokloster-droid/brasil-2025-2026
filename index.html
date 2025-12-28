@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Año Nuevo 2025–2026</title>
+
+  <!-- Leaflet (mapa) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
   <style>
     body { font-family: Arial, sans-serif; background:#f3f6fb; margin:0; padding:20px; }
     .header { text-align:center; margin-bottom:20px; }
@@ -19,18 +23,24 @@
     .thumb { width:100%; height:160px; object-fit:cover; border-radius:10px; background:#f2f2f2; }
     .name { font-weight:700; margin:8px 0 6px; font-size:13px; word-break:break-word; }
     .meta { font-size:12px; color:#555; margin-bottom:8px; }
+    .small { font-size:12px; color:#666; }
     a { color:#0a4d8c; text-decoration:none; }
     a:hover { text-decoration:underline; }
-    .small { font-size:12px; color:#666; }
+    #map { height: 420px; border-radius: 14px; overflow:hidden; border: 1px solid #e6e6e6; }
+    .list { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+    .item { background:#f8fbff; border:1px solid #e6eef9; padding:10px; border-radius:12px; font-size:14px; }
+    .pill { display:inline-block; font-size:12px; padding:3px 8px; border-radius:999px; background:#e8f1ff; color:#0a4d8c; font-weight:700; margin-left:6px;}
+    input[type="text"]{ padding:10px 12px; border-radius:10px; border:1px solid #d6d6d6; min-width:240px; }
   </style>
 </head>
 
 <body>
   <div class="header">
     <h1>🌴 Año Nuevo 2025–2026 🌊</h1>
-    <div class="small">Subimos fotos/videos a una carpeta compartida (Drive) y los vemos acá.</div>
+    <div class="small">Fotos + videos + mapa + ubicación en vivo (guardada cuando apretás el botón).</div>
   </div>
 
+  <!-- SUBIR -->
   <div class="card">
     <h2>📸 Subir fotos o videos</h2>
     <div class="row">
@@ -41,32 +51,62 @@
     <div id="status" class="status"></div>
   </div>
 
+  <!-- GALERIA -->
   <div class="card">
-    <h2>🖼️ Galería</h2>
+    <h2>🖼️ Galería <span class="pill" id="countPill">0</span></h2>
     <div id="gallery" class="grid"></div>
   </div>
 
+  <!-- MAPA -->
+  <div class="card">
+    <h2>🗺️ Mapa del recorrido</h2>
+    <div class="row">
+      <input id="whoInput" type="text" placeholder="Tu nombre (ej: Leo)" />
+      <button id="saveLocBtn" class="btn">📍 Guardar mi ubicación</button>
+      <button id="reloadMapBtn" class="btn">🔄 Actualizar mapa</button>
+    </div>
+    <div class="small" style="margin-top:8px;">
+      Tip: el GPS se guarda cuando apretás el botón. Si no aceptás permisos, no puede guardar.
+    </div>
+
+    <div style="margin-top:14px;">
+      <div id="map"></div>
+      <div class="list" id="pointsList"></div>
+      <div id="mapStatus" class="status"></div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <script>
     // ✅ Pegá acá tu Web App de Apps Script (la que termina en /exec)
-    const API_URL = "https://script.google.com/macros/s/AKfycbwbgKBP_ZihU7spyYQBtdDTYmLrK2krZfDN3BiPw_TtocV1zz2oO2SsKnbwy3mfWWcE0A/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwWDly1_r5N1wIf_oGShwG7J0HAQIQIuJy7L5Qy9EdhS8o27nrIFyKj8E7wT2AJshTvHA/exec";
 
+    // ---- UI ----
     const fileInput = document.getElementById("fileInput");
     const uploadBtn = document.getElementById("uploadBtn");
     const refreshBtn = document.getElementById("refreshBtn");
     const statusEl = document.getElementById("status");
     const galleryEl = document.getElementById("gallery");
+    const countPill = document.getElementById("countPill");
 
-    function setStatus(msg) {
-      statusEl.textContent = msg || "";
-    }
+    const whoInput = document.getElementById("whoInput");
+    const saveLocBtn = document.getElementById("saveLocBtn");
+    const reloadMapBtn = document.getElementById("reloadMapBtn");
+    const pointsList = document.getElementById("pointsList");
+    const mapStatus = document.getElementById("mapStatus");
+
+    function setStatus(msg) { statusEl.textContent = msg || ""; }
+    function setMapStatus(msg) { mapStatus.textContent = msg || ""; }
 
     function fmtDate(iso) {
-      try {
-        const d = new Date(iso);
-        return d.toLocaleString();
-      } catch { return ""; }
+      try { return new Date(iso).toLocaleString(); } catch { return ""; }
     }
 
+    // ---------------------------
+    //  GALERÍA (fotos/videos)
+    // ---------------------------
     function makeTile(p) {
       const tile = document.createElement("div");
       tile.className = "tile";
@@ -82,14 +122,14 @@
       let preview;
       if (p.isVideo) {
         preview = document.createElement("video");
-        preview.src = p.viewUrl; // para video usamos viewUrl (Drive)
+        preview.src = p.viewUrl;
         preview.controls = true;
         preview.style.width = "100%";
         preview.style.borderRadius = "10px";
       } else {
         preview = document.createElement("img");
         preview.className = "thumb";
-        preview.src = p.thumb; // miniatura
+        preview.src = p.thumb;
         preview.loading = "lazy";
       }
 
@@ -131,7 +171,6 @@
       tile.appendChild(meta);
       tile.appendChild(preview);
       tile.appendChild(linkRow);
-
       return tile;
     }
 
@@ -139,12 +178,14 @@
       setStatus("Cargando galería...");
       galleryEl.innerHTML = "";
       try {
-        const res = await fetch(API_URL);
+        const res = await fetch(API_URL + "?mode=gallery");
         const json = await res.json();
 
         if (!json.ok) throw new Error(json.error || "No se pudo cargar galería");
 
         const list = (json.photos || []);
+        countPill.textContent = String(list.length);
+
         if (list.length === 0) {
           setStatus("Todavía no hay fotos/videos 🙂");
           return;
@@ -160,10 +201,7 @@
 
     async function uploadFile() {
       const file = fileInput.files && fileInput.files[0];
-      if (!file) {
-        setStatus("Elegí un archivo primero.");
-        return;
-      }
+      if (!file) { setStatus("Elegí un archivo primero."); return; }
 
       uploadBtn.disabled = true;
       setStatus("Subiendo... (no cierres la pestaña)");
@@ -172,6 +210,7 @@
         const base64 = await toBase64(file);
 
         const form = new URLSearchParams();
+        form.set("mode", "upload");
         form.set("fileName", file.name);
         form.set("mimeType", file.type || "application/octet-stream");
         form.set("data", base64);
@@ -201,7 +240,6 @@
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
-          // reader.result = "data:...;base64,XXXX"
           const s = String(reader.result || "");
           const comma = s.indexOf(",");
           resolve(comma >= 0 ? s.slice(comma + 1) : s);
@@ -211,10 +249,133 @@
       });
     }
 
+    // ---------------------------
+    //  MAPA + GPS
+    // ---------------------------
+    const map = L.map('map');
+    const markersLayer = L.layerGroup().addTo(map);
+
+    // OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    // Vista inicial (aprox Brasil)
+    map.setView([-14.2350, -51.9253], 4);
+
+    async function loadMapPoints() {
+      setMapStatus("Cargando puntos...");
+      markersLayer.clearLayers();
+      pointsList.innerHTML = "";
+
+      try {
+        const res = await fetch(API_URL + "?mode=locations");
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "No se pudieron cargar ubicaciones");
+
+        const pts = json.points || [];
+        if (pts.length === 0) {
+          setMapStatus("Todavía no hay ubicaciones guardadas 🙂");
+          return;
+        }
+
+        // Orden por más nuevo
+        pts.sort((a,b) => new Date(b.created) - new Date(a.created));
+
+        const bounds = [];
+
+        pts.forEach(p => {
+          const lat = Number(p.lat), lon = Number(p.lon);
+          if (!isFinite(lat) || !isFinite(lon)) return;
+
+          bounds.push([lat, lon]);
+
+          const popup = `
+            <div style="width:220px">
+              <div style="font-weight:700;margin-bottom:6px">${p.who || "Alguien"} 📍</div>
+              <div style="font-size:12px;color:#555;margin-bottom:8px">${p.created ? fmtDate(p.created) : ""}</div>
+              <a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener">Abrir en Google Maps</a>
+            </div>
+          `;
+
+          L.marker([lat, lon]).addTo(markersLayer).bindPopup(popup);
+
+          const item = document.createElement("div");
+          item.className = "item";
+          item.innerHTML = `<b>${p.who || "Alguien"}</b> • ${p.created ? fmtDate(p.created) : ""}<br/>
+            <a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${lat},${lon}">Ver en Maps</a>`;
+          pointsList.appendChild(item);
+        });
+
+        if (bounds.length) map.fitBounds(bounds, { padding: [30,30] });
+        setMapStatus("✅ Puntos cargados: " + pts.length);
+
+      } catch (e) {
+        console.error(e);
+        setMapStatus("❌ Error: " + (e.message || e));
+      }
+    }
+
+    function getCurrentPosition() {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) return reject(new Error("Tu navegador no tiene GPS."));
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve(pos),
+          err => reject(err),
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+      });
+    }
+
+    async function saveMyLocation() {
+      const who = (whoInput.value || "").trim() || "Alguien";
+
+      saveLocBtn.disabled = true;
+      setMapStatus("Pidiendo ubicación al teléfono...");
+
+      try {
+        const pos = await getCurrentPosition();
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        setMapStatus("Guardando ubicación...");
+
+        const form = new URLSearchParams();
+        form.set("mode", "saveLocation");
+        form.set("who", who);
+        form.set("lat", String(lat));
+        form.set("lon", String(lon));
+
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: form.toString()
+        });
+
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "No se pudo guardar ubicación");
+
+        setMapStatus("✅ Ubicación guardada.");
+        await loadMapPoints();
+
+      } catch (e) {
+        console.error(e);
+        setMapStatus("❌ " + (e.message || e));
+      } finally {
+        saveLocBtn.disabled = false;
+      }
+    }
+
+    // ---- Eventos ----
     uploadBtn.addEventListener("click", uploadFile);
     refreshBtn.addEventListener("click", loadGallery);
+    reloadMapBtn.addEventListener("click", loadMapPoints);
+    saveLocBtn.addEventListener("click", saveMyLocation);
 
+    // ---- Inicio ----
     loadGallery();
+    loadMapPoints();
   </script>
 </body>
 </html>
