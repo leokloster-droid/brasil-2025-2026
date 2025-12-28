@@ -126,7 +126,7 @@
         gallery.innerHTML = "";
         (data.photos || []).forEach(p => {
           const img = document.createElement("img");
-          img.src = p.url;
+          img.src = p.url + "&confirm=t";
           gallery.appendChild(img);
         });
       } catch (err) {
