@@ -316,12 +316,6 @@
       background: rgba(0,0,0,.25);
     }
 
-    @media (max-width: 520px){
-      .title h1{ font-size: 16px; }
-      input[type="text"]{ min-width: 160px; }
-      .modalMedia{ max-height: 68vh; }
-    }
-
     /* --------------------------
        🎬 MOVIE MODE (overlay)
     -------------------------- */
@@ -335,7 +329,6 @@
       display: none;
       flex-direction: column;
     }
-
     .movieTop{
       padding: 14px 14px 10px;
       display:flex;
@@ -343,7 +336,6 @@
       justify-content:space-between;
       gap:12px;
     }
-
     .movieHead{ min-width: 0; }
     .movieTitle{
       font-weight: 950;
@@ -355,14 +347,12 @@
       font-size: 12px;
       color: rgba(255,255,255,.65);
     }
-
     .movieControls{
       display:flex;
       gap:10px;
       flex-wrap:wrap;
       justify-content:flex-end;
     }
-
     .movieBody{
       flex: 1;
       display:grid;
@@ -370,7 +360,6 @@
       gap: 12px;
       padding: 0 14px 14px;
     }
-
     .movieMediaWrap{
       border-radius: 18px;
       border: 1px solid rgba(255,255,255,.10);
@@ -382,14 +371,12 @@
       min-height: 45vh;
       position: relative;
     }
-
     .movieMedia{
       width: 100%;
       height: 100%;
       object-fit: contain;
       background: rgba(0,0,0,.20);
     }
-
     .movieFade{
       opacity: 1;
       transition: opacity 420ms ease;
@@ -403,7 +390,6 @@
       background: rgba(0,0,0,.25);
       min-height: 45vh;
     }
-
     .movieToast{
       position:absolute;
       left: 14px;
@@ -421,6 +407,12 @@
       .movieBody{ grid-template-columns: 1fr; }
       #movieMap{ min-height: 35vh; }
       .movieMediaWrap{ min-height: 42vh; }
+    }
+
+    @media (max-width: 520px){
+      .title h1{ font-size: 16px; }
+      input[type="text"]{ min-width: 160px; }
+      .modalMedia{ max-height: 68vh; }
     }
   </style>
 </head>
@@ -559,6 +551,7 @@
       viewMap.style.display = (v === "map") ? "block" : "none";
       viewSettings.style.display = (v === "settings") ? "block" : "none";
       tabs.forEach(t => t.classList.toggle("active", t.dataset.view === v));
+
       if (v === "map") setTimeout(() => map.invalidateSize(), 120);
     }
     tabs.forEach(t => t.onclick = () => setView(t.dataset.view));
@@ -771,6 +764,7 @@
       const by = groupByDay(events);
       const keys = Object.keys(by).sort().reverse();
       const today = todayKeyLocal();
+
       const ordered = keys.includes(today)
         ? [today, ...keys.filter(k => k !== today)]
         : keys;
@@ -882,7 +876,7 @@
       return js.presence || {};
     }
 
-    // Live panel
+    // Opción 4: panel “En vivo ahora”
     const liveGrid = document.getElementById("liveGrid");
     const liveCountPill = document.getElementById("liveCountPill");
 
@@ -1044,7 +1038,7 @@
       setMapStatus("🔴 Modo encuentro OFF.");
     };
 
-    // Upload
+    // Upload (FAB)
     const refreshBtn = document.getElementById("refreshBtn");
     const fabInput = document.getElementById("fabInput");
     refreshBtn.onclick = () => loadAll();
@@ -1108,7 +1102,7 @@
     }
 
     // --------------------------
-    // 🎬 MOVIE MODE + MAP ANIMATED + FADE
+    // 🎬 MOVIE MODE + MAP + FADE + CARTEL "DÍA N"
     // --------------------------
     const movie = document.getElementById("movie");
     const movieBtn = document.getElementById("movieBtn");
@@ -1150,9 +1144,29 @@
     }
 
     function buildMovieScenes(events){
-      return (events || [])
-        .filter(ev => ev && (ev.type === "media" || ev.type === "location"))
+      const list = (events || [])
+        .filter(ev => ev && (ev.type === "media" || ev.type === "location") && ev.created)
         .sort((a,b) => new Date(a.created||0) - new Date(b.created||0));
+
+      const out = [];
+      let dayIndex = 0;
+      let lastDayKey = null;
+
+      for (const ev of list) {
+        const dayKey = String(ev.created).slice(0,10);
+        if (dayKey && dayKey !== lastDayKey) {
+          dayIndex++;
+          out.push({
+            type: "dayCard",
+            dayIndex,
+            dayKey,
+            created: ev.created
+          });
+          lastDayKey = dayKey;
+        }
+        out.push(ev);
+      }
+      return out;
     }
 
     function ensureMovieMap(){
@@ -1165,7 +1179,6 @@
 
       movieLine = L.polyline([], { weight: 4, opacity: 0.9 }).addTo(movieMap);
       movieMarker = L.circleMarker([0,0], { radius: 7, opacity: 1, fillOpacity: 0.9 }).addTo(movieMap);
-
       movieMap.setView([-14.2350, -51.9253], 4);
     }
 
@@ -1180,6 +1193,13 @@
 
     function updateMovieHeader(ev){
       const t = ev.created ? fmtDate(ev.created) : "";
+
+      if (ev.type === "dayCard") {
+        movieTitle.textContent = `📆 Día ${ev.dayIndex}`;
+        movieSub.textContent = `${ev.dayKey}`;
+        return;
+      }
+
       if (ev.type === "media") {
         movieTitle.textContent = (ev.isVideo ? "🎬 Video" : "🖼️ Foto");
         movieSub.textContent = `${ev.who || "Alguien"} • ${ev.name || ""} ${t ? "• " + t : ""}`;
@@ -1190,10 +1210,27 @@
     }
 
     function showMovieScene(ev){
-      movieMediaWrap.innerHTML = `<div class="movieToast" id="movieToast"></div>`;
-      const toastEl = movieMediaWrap.querySelector("#movieToast");
-      toastEl.textContent = "";
-      toastEl.style.display = "none";
+      // limpiar media (dejando el toast)
+      Array.from(movieMediaWrap.children).forEach(ch => {
+        if (ch !== movieToast) ch.remove();
+      });
+
+      if (ev.type === "dayCard") {
+        const box = document.createElement("div");
+        box.style.width = "100%";
+        box.style.maxWidth = "900px";
+        box.style.padding = "26px 18px";
+        box.style.borderRadius = "18px";
+        box.style.background = "rgba(255,255,255,.06)";
+        box.style.border = "1px solid rgba(255,255,255,.12)";
+        box.style.textAlign = "center";
+        box.innerHTML = `
+          <div style="font-weight:950; font-size:24px; letter-spacing:.6px;">DÍA ${ev.dayIndex}</div>
+          <div style="margin-top:8px; color: rgba(255,255,255,.70); font-size:13px;">${ev.dayKey}</div>
+        `;
+        movieMediaWrap.appendChild(box);
+        return;
+      }
 
       if (ev.type === "media") {
         if (ev.isVideo) {
@@ -1248,6 +1285,13 @@
       await fadeOutMovie();
       updateMovieHeader(ev);
 
+      if (ev.type === "dayCard") {
+        showMovieScene(ev);
+        fadeInMovie();
+        scheduleNextMovie(1800);
+        return;
+      }
+
       if (ev.type === "location") {
         const lat = Number(ev.lat), lon = Number(ev.lon);
         if (isFinite(lat) && isFinite(lon)) addPointToMoviePath(lat, lon);
@@ -1297,7 +1341,7 @@
 
       movie.style.display = "flex";
       ensureMovieMap();
-      setTimeout(() => movieMap.invalidateSize(), 120);
+      setTimeout(() => movieMap.invalidateSize(), 150);
 
       movieLine.setLatLngs([]);
       movieMarker.setLatLng([-14.2350, -51.9253]);
@@ -1330,8 +1374,10 @@
     // Init
     initName();
     loadAll();
+  </script>
 
-    // PWA: register service worker
+  <!-- ✅ Service worker -->
+  <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./service-worker.js").catch(()=>{});
