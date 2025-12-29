@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Año Nuevo 2025–2026</title>
-  
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0a4d8c">
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a4d8c">
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
@@ -321,6 +321,107 @@
       input[type="text"]{ min-width: 160px; }
       .modalMedia{ max-height: 68vh; }
     }
+
+    /* --------------------------
+       🎬 MOVIE MODE (overlay)
+    -------------------------- */
+    .movieOverlay{
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0,0,0,.92);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: none;
+      flex-direction: column;
+    }
+
+    .movieTop{
+      padding: 14px 14px 10px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .movieHead{ min-width: 0; }
+    .movieTitle{
+      font-weight: 950;
+      letter-spacing: .2px;
+      font-size: 14px;
+    }
+    .movieSub{
+      margin-top: 4px;
+      font-size: 12px;
+      color: rgba(255,255,255,.65);
+    }
+
+    .movieControls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .movieBody{
+      flex: 1;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 12px;
+      padding: 0 14px 14px;
+    }
+
+    .movieMediaWrap{
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      min-height: 45vh;
+      position: relative;
+    }
+
+    .movieMedia{
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: rgba(0,0,0,.20);
+    }
+
+    .movieFade{
+      opacity: 1;
+      transition: opacity 420ms ease;
+    }
+    .movieFade.out{ opacity: 0; }
+
+    #movieMap{
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.25);
+      min-height: 45vh;
+    }
+
+    .movieToast{
+      position:absolute;
+      left: 14px;
+      bottom: 14px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.12);
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: rgba(255,255,255,.85);
+      display:none;
+    }
+
+    @media (max-width: 860px){
+      .movieBody{ grid-template-columns: 1fr; }
+      #movieMap{ min-height: 35vh; }
+      .movieMediaWrap{ min-height: 42vh; }
+    }
   </style>
 </head>
 
@@ -336,6 +437,7 @@
       </div>
 
       <div class="actions">
+        <button class="btn" id="movieBtn">🎬 Modo película</button>
         <button class="btn btnPrimary" id="refreshBtn">🔄 Actualizar</button>
       </div>
     </div>
@@ -419,6 +521,28 @@
     </div>
   </div>
 
+  <!-- 🎬 MOVIE MODE -->
+  <div class="movieOverlay" id="movie">
+    <div class="movieTop">
+      <div class="movieHead">
+        <div class="movieTitle" id="movieTitle">🎬 Modo película</div>
+        <div class="movieSub" id="movieSub">—</div>
+      </div>
+      <div class="movieControls">
+        <button class="btn btnPrimary" id="moviePlayBtn">⏸️ Pausa</button>
+        <button class="btn" id="movieNextBtn">⏭️ Siguiente</button>
+        <button class="btn btnBad" id="movieExitBtn">✖ Salir</button>
+      </div>
+    </div>
+
+    <div class="movieBody">
+      <div class="movieMediaWrap movieFade" id="movieMediaWrap">
+        <div class="movieToast" id="movieToast"></div>
+      </div>
+      <div id="movieMap"></div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
@@ -435,8 +559,6 @@
       viewMap.style.display = (v === "map") ? "block" : "none";
       viewSettings.style.display = (v === "settings") ? "block" : "none";
       tabs.forEach(t => t.classList.toggle("active", t.dataset.view === v));
-
-      // Leaflet necesita invalidar tamaño cuando estaba oculto
       if (v === "map") setTimeout(() => map.invalidateSize(), 120);
     }
     tabs.forEach(t => t.onclick = () => setView(t.dataset.view));
@@ -491,8 +613,6 @@
       } else {
         const img = document.createElement("img");
         img.className = "modalMedia";
-        // en modal usamos viewUrl (drive view) no sirve como src,
-        // usamos thumb grande (Drive thumbnail) para mostrar bien:
         img.src = ev.thumb || "";
         img.alt = ev.name || "foto";
         modalBody.appendChild(img);
@@ -518,7 +638,6 @@
 
     function todayKeyLocal(){
       const d = new Date();
-      // local YYYY-MM-DD
       const y = d.getFullYear();
       const m = String(d.getMonth()+1).padStart(2,"0");
       const dd = String(d.getDate()).padStart(2,"0");
@@ -577,7 +696,6 @@
         preview.onerror = () => preview.remove();
       }
 
-      // Opción 1: abrir modal al tocar miniatura
       preview.addEventListener("click", (e) => {
         e.preventDefault();
         openModalForEvent(ev);
@@ -649,13 +767,10 @@
       return tile;
     }
 
-    // Opción 3: Hoy arriba + abierto por defecto
     function renderDays(events){
       const by = groupByDay(events);
-      const keys = Object.keys(by).sort().reverse(); // newest first
+      const keys = Object.keys(by).sort().reverse();
       const today = todayKeyLocal();
-
-      // Reordenar: Hoy primero si existe
       const ordered = keys.includes(today)
         ? [today, ...keys.filter(k => k !== today)]
         : keys;
@@ -663,10 +778,9 @@
       countPill.textContent = String(events.length);
       daysEl.innerHTML = "";
 
-      // seleccion por defecto: hoy si existe, sino nada
       let defaultOpenKey = ordered.includes(today) ? today : null;
 
-      ordered.forEach((k, idx) => {
+      ordered.forEach((k) => {
         const day = document.createElement("div");
         day.className = "day";
 
@@ -701,14 +815,12 @@
         day.appendChild(body);
         daysEl.appendChild(day);
 
-        // abrir hoy automáticamente (solo una vez)
         if (k === defaultOpenKey) {
           body.style.display = "block";
           selectedDayKey = k;
         }
       });
 
-      // al terminar de renderizar, actualizamos el mapa con la selección por defecto
       renderMapFromSelectedDay();
     }
 
@@ -770,7 +882,7 @@
       return js.presence || {};
     }
 
-    // Opción 4: panel “En vivo ahora”
+    // Live panel
     const liveGrid = document.getElementById("liveGrid");
     const liveCountPill = document.getElementById("liveCountPill");
 
@@ -779,7 +891,6 @@
       liveCountPill.textContent = String(people.length);
       liveGrid.innerHTML = "";
 
-      // ordenar por más reciente (menor age)
       people.sort((a,b) => new Date(presence[b].updated) - new Date(presence[a].updated));
 
       people.forEach(name => {
@@ -933,7 +1044,7 @@
       setMapStatus("🔴 Modo encuentro OFF.");
     };
 
-    // Upload (FAB)
+    // Upload
     const refreshBtn = document.getElementById("refreshBtn");
     const fabInput = document.getElementById("fabInput");
     refreshBtn.onclick = () => loadAll();
@@ -996,9 +1107,236 @@
       }
     }
 
+    // --------------------------
+    // 🎬 MOVIE MODE + MAP ANIMATED + FADE
+    // --------------------------
+    const movie = document.getElementById("movie");
+    const movieBtn = document.getElementById("movieBtn");
+    const moviePlayBtn = document.getElementById("moviePlayBtn");
+    const movieNextBtn = document.getElementById("movieNextBtn");
+    const movieExitBtn = document.getElementById("movieExitBtn");
+    const movieTitle = document.getElementById("movieTitle");
+    const movieSub = document.getElementById("movieSub");
+    const movieToast = document.getElementById("movieToast");
+    const movieMediaWrap = document.getElementById("movieMediaWrap");
+
+    let movieMap = null;
+    let movieLine = null;
+    let movieMarker = null;
+
+    let movieScenes = [];
+    let movieIndex = 0;
+    let movieTimer = null;
+    let moviePaused = false;
+
+    const PHOTO_MS = 4000;
+    const LOCATION_MS = 2200;
+    const VIDEO_FALLBACK_MS = 8000;
+    const FADE_MS = 420;
+
+    function toastMovie(msg){
+      movieToast.textContent = msg;
+      movieToast.style.display = "block";
+      clearTimeout(toastMovie._t);
+      toastMovie._t = setTimeout(() => movieToast.style.display = "none", 1600);
+    }
+
+    function fadeOutMovie(){
+      movieMediaWrap.classList.add("out");
+      return new Promise(res => setTimeout(res, FADE_MS));
+    }
+    function fadeInMovie(){
+      movieMediaWrap.classList.remove("out");
+    }
+
+    function buildMovieScenes(events){
+      return (events || [])
+        .filter(ev => ev && (ev.type === "media" || ev.type === "location"))
+        .sort((a,b) => new Date(a.created||0) - new Date(b.created||0));
+    }
+
+    function ensureMovieMap(){
+      if (movieMap) return;
+      movieMap = L.map("movieMap", { zoomControl: false, attributionControl: true });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap"
+      }).addTo(movieMap);
+
+      movieLine = L.polyline([], { weight: 4, opacity: 0.9 }).addTo(movieMap);
+      movieMarker = L.circleMarker([0,0], { radius: 7, opacity: 1, fillOpacity: 0.9 }).addTo(movieMap);
+
+      movieMap.setView([-14.2350, -51.9253], 4);
+    }
+
+    function addPointToMoviePath(lat, lon){
+      if (!movieLine || !movieMap) return;
+      const pts = movieLine.getLatLngs();
+      pts.push([lat, lon]);
+      movieLine.setLatLngs(pts);
+      movieMarker.setLatLng([lat, lon]);
+      movieMap.flyTo([lat, lon], Math.max(movieMap.getZoom(), 13), { duration: 1.2 });
+    }
+
+    function updateMovieHeader(ev){
+      const t = ev.created ? fmtDate(ev.created) : "";
+      if (ev.type === "media") {
+        movieTitle.textContent = (ev.isVideo ? "🎬 Video" : "🖼️ Foto");
+        movieSub.textContent = `${ev.who || "Alguien"} • ${ev.name || ""} ${t ? "• " + t : ""}`;
+      } else {
+        movieTitle.textContent = "📍 Ubicación";
+        movieSub.textContent = `${ev.who || "Alguien"} • ${t}`;
+      }
+    }
+
+    function showMovieScene(ev){
+      movieMediaWrap.innerHTML = `<div class="movieToast" id="movieToast"></div>`;
+      const toastEl = movieMediaWrap.querySelector("#movieToast");
+      toastEl.textContent = "";
+      toastEl.style.display = "none";
+
+      if (ev.type === "media") {
+        if (ev.isVideo) {
+          const v = document.createElement("video");
+          v.className = "movieMedia";
+          v.src = ev.viewUrl;
+          v.controls = true;
+          v.autoplay = true;
+          v.playsInline = true;
+          movieMediaWrap.appendChild(v);
+
+          v.addEventListener("loadedmetadata", () => {
+            const d = isFinite(v.duration) ? Math.min(v.duration * 1000, 20000) : VIDEO_FALLBACK_MS;
+            if (!moviePaused) scheduleNextMovie(d);
+          }, { once:true });
+
+          v.addEventListener("ended", () => { if(!moviePaused) nextMovieScene(); });
+        } else {
+          const img = document.createElement("img");
+          img.className = "movieMedia";
+          img.src = ev.thumb || "";
+          img.alt = ev.name || "foto";
+          movieMediaWrap.appendChild(img);
+        }
+        return;
+      }
+
+      const box = document.createElement("div");
+      box.style.width = "100%";
+      box.style.maxWidth = "900px";
+      box.style.padding = "18px";
+      box.style.borderRadius = "16px";
+      box.style.background = "rgba(255,255,255,.05)";
+      box.style.border = "1px solid rgba(255,255,255,.10)";
+      box.style.textAlign = "center";
+      box.innerHTML = `<div style="font-weight:900; font-size:14px; margin-bottom:6px;">📍 Parada</div>
+                       <div style="color: rgba(255,255,255,.65); font-size:12px;">${ev.created ? fmtDate(ev.created) : ""}</div>`;
+      movieMediaWrap.appendChild(box);
+    }
+
+    function scheduleNextMovie(ms){
+      clearTimeout(movieTimer);
+      if (moviePaused) return;
+      movieTimer = setTimeout(() => nextMovieScene(), ms);
+    }
+
+    async function renderMovieScene(i){
+      movieIndex = i;
+      const ev = movieScenes[movieIndex];
+      if (!ev) return;
+
+      await fadeOutMovie();
+      updateMovieHeader(ev);
+
+      if (ev.type === "location") {
+        const lat = Number(ev.lat), lon = Number(ev.lon);
+        if (isFinite(lat) && isFinite(lon)) addPointToMoviePath(lat, lon);
+        showMovieScene(ev);
+        fadeInMovie();
+        scheduleNextMovie(LOCATION_MS);
+        return;
+      }
+
+      showMovieScene(ev);
+      fadeInMovie();
+
+      const ms = ev.isVideo ? VIDEO_FALLBACK_MS : PHOTO_MS;
+      scheduleNextMovie(ms);
+    }
+
+    function nextMovieScene(){
+      if (moviePaused) return;
+      const n = movieIndex + 1;
+      if (n >= movieScenes.length) {
+        toastMovie("🎬 Fin del viaje");
+        moviePlayBtn.disabled = true;
+        clearTimeout(movieTimer);
+        return;
+      }
+      renderMovieScene(n);
+    }
+
+    function toggleMoviePause(){
+      moviePaused = !moviePaused;
+      moviePlayBtn.textContent = moviePaused ? "▶️ Reanudar" : "⏸️ Pausa";
+      if (moviePaused) clearTimeout(movieTimer);
+      else scheduleNextMovie(1200);
+    }
+
+    function startMovie(){
+      if (!cachedEvents || !cachedEvents.length) {
+        alert("Todavía no hay eventos para reproducir. Subí una foto o guardá una ubicación.");
+        return;
+      }
+
+      movieScenes = buildMovieScenes(cachedEvents);
+      movieIndex = 0;
+      moviePaused = false;
+      moviePlayBtn.disabled = false;
+      moviePlayBtn.textContent = "⏸️ Pausa";
+
+      movie.style.display = "flex";
+      ensureMovieMap();
+      setTimeout(() => movieMap.invalidateSize(), 120);
+
+      movieLine.setLatLngs([]);
+      movieMarker.setLatLng([-14.2350, -51.9253]);
+      movieMap.setView([-14.2350, -51.9253], 4);
+
+      toastMovie("🎬 Modo película");
+      movieMediaWrap.classList.remove("out");
+      renderMovieScene(0);
+    }
+
+    function exitMovie(){
+      clearTimeout(movieTimer);
+      movieTimer = null;
+      movieScenes = [];
+      movieIndex = 0;
+      moviePaused = false;
+      movie.style.display = "none";
+    }
+
+    movieBtn.onclick = startMovie;
+    moviePlayBtn.onclick = toggleMoviePause;
+    movieNextBtn.onclick = () => nextMovieScene();
+    movieExitBtn.onclick = exitMovie;
+
+    movieMediaWrap.addEventListener("click", () => toggleMoviePause());
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && movie.style.display === "flex") exitMovie();
+    });
+
     // Init
     initName();
     loadAll();
+
+    // PWA: register service worker
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch(()=>{});
+      });
+    }
   </script>
 </body>
 </html>
