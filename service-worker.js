@@ -1,42 +1,23 @@
-const CACHE_NAME = "ano-nuevo-2025-2026-v1";
-
-const CORE_ASSETS = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
-];
-
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS))
-  );
+self.addEventListener("install", (e) => {
   self.skipWaiting();
 });
 
-self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : null))
-      )
-    )
-  );
-  self.clients.claim();
+self.addEventListener("activate", (e) => {
+  e.waitUntil(self.clients.claim());
 });
 
-self.addEventListener("fetch", event => {
-  if (event.request.method !== "GET") return;
+self.addEventListener("fetch", (e) => {
+  const url = new URL(e.request.url);
 
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-        return response;
-      });
-    })
-  );
+  // ❌ NO cachear Apps Script (datos en vivo)
+  if (url.origin.includes("script.google.com")) {
+    return; // deja que vaya directo a internet
+  }
+
+  // ❌ NO cachear Google Maps / tiles
+  if (url.origin.includes("google") || url.origin.includes("openstreetmap")) {
+    return;
+  }
+
+  // Todo lo demás: normal
 });
